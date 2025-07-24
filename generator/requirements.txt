@@ -1,0 +1,4 @@
+pandas
+faker
+minio
+requests
