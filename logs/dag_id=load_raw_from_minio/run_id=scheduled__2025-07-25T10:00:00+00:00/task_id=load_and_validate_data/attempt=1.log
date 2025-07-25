@@ -1,0 +1,82 @@
+[2025-07-25T11:12:45.234+0000] {taskinstance.py:1979} INFO - Dependencies all met for dep_context=non-requeueable deps ti=<TaskInstance: load_raw_from_minio.load_and_validate_data scheduled__2025-07-25T10:00:00+00:00 [queued]>
+[2025-07-25T11:12:45.243+0000] {taskinstance.py:1979} INFO - Dependencies all met for dep_context=requeueable deps ti=<TaskInstance: load_raw_from_minio.load_and_validate_data scheduled__2025-07-25T10:00:00+00:00 [queued]>
+[2025-07-25T11:12:45.244+0000] {taskinstance.py:2193} INFO - Starting attempt 1 of 3
+[2025-07-25T11:12:45.258+0000] {taskinstance.py:2217} INFO - Executing <Task(PythonOperator): load_and_validate_data> on 2025-07-25 10:00:00+00:00
+[2025-07-25T11:12:45.263+0000] {standard_task_runner.py:60} INFO - Started process 315 to run task
+[2025-07-25T11:12:45.267+0000] {standard_task_runner.py:87} INFO - Running: ['***', 'tasks', 'run', 'load_raw_from_minio', 'load_and_validate_data', 'scheduled__2025-07-25T10:00:00+00:00', '--job-id', '26', '--raw', '--subdir', 'DAGS_FOLDER/load_raw_from_minio.py', '--cfg-path', '/tmp/tmpgeqvx0nu']
+[2025-07-25T11:12:45.269+0000] {standard_task_runner.py:88} INFO - Job 26: Subtask load_and_validate_data
+[2025-07-25T11:12:45.332+0000] {task_command.py:423} INFO - Running <TaskInstance: load_raw_from_minio.load_and_validate_data scheduled__2025-07-25T10:00:00+00:00 [running]> on host 5b0c8788112c
+[2025-07-25T11:12:45.461+0000] {taskinstance.py:2513} INFO - Exporting env vars: AIRFLOW_CTX_DAG_OWNER='ilona' AIRFLOW_CTX_DAG_ID='load_raw_from_minio' AIRFLOW_CTX_TASK_ID='load_and_validate_data' AIRFLOW_CTX_EXECUTION_DATE='2025-07-25T10:00:00+00:00' AIRFLOW_CTX_TRY_NUMBER='1' AIRFLOW_CTX_DAG_RUN_ID='scheduled__2025-07-25T10:00:00+00:00'
+[2025-07-25T11:12:45.485+0000] {base.py:83} INFO - Using connection ID 'MinIO' for task execution.
+[2025-07-25T11:12:45.486+0000] {connection_wrapper.py:384} INFO - AWS Connection (conn_id='MinIO', conn_type='aws') credentials retrieved from login and password.
+[2025-07-25T11:12:46.268+0000] {base.py:83} INFO - Using connection ID 'Postgres' for task execution.
+[2025-07-25T11:12:46.273+0000] {sql.py:457} INFO - Running statement: INSERT INTO raw.events (
+    event_id,
+    event_time,
+    user_id,
+    email,
+    referral_code,
+    user_name,
+    birth_date,
+    profile_created_at,
+    product_id,
+    product_name,
+    category,
+    supplier,
+    price,
+    session_id,
+    session_start_time,
+    session_end_time,
+    device_type,
+    device_os,
+    location_country,
+    location_city,
+    order_id,
+    payment_id,
+    order_items,
+    total_amount,
+    order_status,
+    campaign,
+    promocode,
+    user_campaign_id,
+    raw_payload,
+    created_at
+)
+VALUES (
+    %(event_id)s,
+    %(event_time)s,
+    %(user_id)s,
+    %(email)s,
+    %(referral_code)s,
+    %(user_name)s,
+    %(birth_date)s,
+    %(profile_created_at)s,
+    %(product_id)s,
+    %(product_name)s,
+    %(category)s,
+    %(supplier)s,
+    %(price)s,
+    %(session_id)s,
+    %(session_start_time)s,
+    %(session_end_time)s,
+    %(device_type)s,
+    %(device_os)s,
+    %(location_country)s,
+    %(location_city)s,
+    %(order_id)s,
+    %(payment_id)s,
+    %(order_items)s,
+    %(total_amount)s,
+    %(order_status)s,
+    %(campaign)s,
+    %(promocode)s,
+    %(user_campaign_id)s,
+    %(raw_payload)s,
+    NOW()
+);
+, parameters: {'event_id': UUID('473541c9-4d50-4012-91fc-73f5a2d53b97'), 'event_time': datetime.datetime(2025, 7, 25, 11, 11, 56, 315594, tzinfo=TzInfo(UTC)), 'user_id': UUID('0b7872db-d23e-4d81-bd30-42c09df8e114'), 'email': 'danila2015@example.com', 'referral_code': '6d987f54-c822-43c9-9231-64b0923a840f', 'user_name': 'Агафья Максимовна Калинина', 'birth_date': datetime.date(1960, 7, 20), 'profile_created_at': datetime.datetime(2025, 7, 25, 11, 11, 56, 315594, tzinfo=TzInfo(UTC)), 'product_id': UUID('7ce0ce48-acc1-400c-aa6d-17bb5015f08a'), 'product_name': 'Наушники', 'category': 'Электроника', 'supplier': 'ООО «Одинцов, Селезнева и Шилов»', 'price': 235.57, 'session_id': UUID('661f6916-3e48-4baa-90b4-b49582e7ce41'), 'session_start_time': datetime.datetime(2025, 7, 25, 11, 11, 56, 315594, tzinfo=TzInfo(UTC)), 'session_end_time': datetime.datetime(2025, 7, 25, 11, 28, 56, 315594, tzinfo=TzInfo(UTC)), 'device_type': 'mobile', 'device_os': 'Windows', 'location_country': 'Беларусь', 'location_city': 'г. Нальчик', 'order_id': UUID('ebf611e7-591a-426a-8c29-412f0de482e7'), 'payment_id': UUID('345942cf-65c3-4a37-ad19-efa42915c70e'), 'order_items': 52, 'total_amount': 12249.64, 'order_status': 'cancelled', 'campaign': 'волк', 'promocode': 'mJHAi-2025', 'user_campaign_id': UUID('fab203c1-de58-4087-9c20-7576d832a2f4'), 'raw_payload': '{"event_id": "473541c9-4d50-4012-91fc-73f5a2d53b97", "event_time": "2025-07-25T11:11:56.315594+00:00", "user": {"user_id": "0b7872db-d23e-4d81-bd30-42c09df8e114", "email": "danila2015@example.com", "referral_code": "6d987f54-c822-43c9-9231-64b0923a840f", "profile": {"name": "\\u0410\\u0433\\u0430\\u0444\\u044c\\u044f \\u041c\\u0430\\u043a\\u0441\\u0438\\u043c\\u043e\\u0432\\u043d\\u0430 \\u041a\\u0430\\u043b\\u0438\\u043d\\u0438\\u043d\\u0430", "birth_date": "1960-07-20", "created_at": "2025-07-25T11:11:56.315594+00:00"}}, "product": {"product_id": "7ce0ce48-acc1-400c-aa6d-17bb5015f08a", "name": "\\u041d\\u0430\\u0443\\u0448\\u043d\\u0438\\u043a\\u0438", "category": "\\u042d\\u043b\\u0435\\u043a\\u0442\\u0440\\u043e\\u043d\\u0438\\u043a\\u0430", "supplier": "\\u041e\\u041e\\u041e \\u00ab\\u041e\\u0434\\u0438\\u043d\\u0446\\u043e\\u0432, \\u0421\\u0435\\u043b\\u0435\\u0437\\u043d\\u0435\\u0432\\u0430 \\u0438 \\u0428\\u0438\\u043b\\u043e\\u0432\\u00bb", "price": 235.57}, "session": {"session_id": "661f6916-3e48-4baa-90b4-b49582e7ce41", "start_time": "2025-07-25T11:11:56.315594+00:00", "end_time": "2025-07-25T11:28:56.315594+00:00", "device": {"type": "mobile", "os": "Windows", "location": {"country": "\\u0411\\u0435\\u043b\\u0430\\u0440\\u0443\\u0441\\u044c", "city": "\\u0433. \\u041d\\u0430\\u043b\\u044c\\u0447\\u0438\\u043a"}}}, "order": {"order_id": "ebf611e7-591a-426a-8c29-412f0de482e7", "payment_id": "345942cf-65c3-4a37-ad19-efa42915c70e", "order_items": 52, "total_amount": 12249.64, "status": "cancelled"}, "marketing": {"campaign": "\\u0432\\u043e\\u043b\\u043a", "promocode": "mJHAi-2025", "user_campaign_id": "fab203c1-de58-4087-9c20-7576d832a2f4"}}'}
+[2025-07-25T11:12:46.275+0000] {sql.py:466} INFO - Rows affected: 1
+[2025-07-25T11:12:46.277+0000] {python.py:202} INFO - Done. Returned value was: None
+[2025-07-25T11:12:46.286+0000] {taskinstance.py:1149} INFO - Marking task as SUCCESS. dag_id=load_raw_from_minio, task_id=load_and_validate_data, execution_date=20250725T100000, start_date=20250725T111245, end_date=20250725T111246
+[2025-07-25T11:12:46.309+0000] {local_task_job_runner.py:234} INFO - Task exited with return code 0
+[2025-07-25T11:12:46.329+0000] {taskinstance.py:3312} INFO - 0 downstream tasks scheduled from follow-on schedule check
