@@ -119,3 +119,6 @@ class Event(BaseModel):
         if not v:
             raise ValueError("Поле не может быть пустым")
         return v
+
+if __name__ == "__main__":
+    pass

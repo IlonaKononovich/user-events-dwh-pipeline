@@ -102,3 +102,7 @@ class FactOrder(BaseModel):
         if v > now_utc:
             raise ValueError('event_time не может быть в будущем')
         return v
+
+
+if __name__ == "__main__":
+    pass

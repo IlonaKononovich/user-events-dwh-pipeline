@@ -36,3 +36,6 @@ def notify_telegram(message: str, silent: bool = False):
     except Exception as e:
         # Логируем исключения, чтобы знать о проблемах с сетью или API
         logging.error(f"Ошибка при отправке сообщения в Telegram: {e}")
+
+if __name__ == "__main__":
+    pass
