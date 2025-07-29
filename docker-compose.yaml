@@ -96,9 +96,9 @@ services:
         soft: 262144
         hard: 262144
     environment:
-      CLICKHOUSE_USER: airflow
-      CLICKHOUSE_PASSWORD: airflow
-      CLICKHOUSE_DB: airflow
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
     volumes:
       - clickhouse-data-volume:/var/lib/clickhouse
       - clickhouse-log-volume:/var/log/clickhouse-server
@@ -121,8 +121,8 @@ services:
       - "9001:9001"
     environment:
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET}
     command: server /data --console-address :9001
     volumes:

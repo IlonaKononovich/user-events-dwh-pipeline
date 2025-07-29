@@ -8,122 +8,120 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from utils.validation import Event
+from utils.raw_validation import Event
 from utils.telegram_logger import notify_telegram
 
-
 # Пути к SQL-скриптам
-SQL_CREATE_TABLE = os.path.join(os.path.dirname(__file__), '..', 'sql', 'raw', 'create_raw_events.sql')
-SQL_INSERT = os.path.join(os.path.dirname(__file__), '..', 'sql', 'raw', 'insert_raw_events.sql')
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-# Путь к файлу, где будем хранить имена уже обработанных файлов
-PROCESSED_FILES_LOG = '/opt/airflow/processed_files.log'
+BASE_SQL_RAW_CREATE = os.path.join(BASE_DIR, 'sql', 'raw', 'create')
+BASE_SQL_RAW_INSERT = os.path.join(BASE_DIR, 'sql', 'raw', 'insert')
 
-# Параметры DAG — базовые настройки поведения задач
+SQL_CREATE_EVENTS = os.path.join(BASE_SQL_RAW_CREATE, 'create_raw_events.sql')
+SQL_CREATE_PROCESSED = os.path.join(BASE_SQL_RAW_CREATE, 'create_processed_files.sql')
+
+SQL_INSERT_EVENT = os.path.join(BASE_SQL_RAW_INSERT, 'insert_raw_events.sql')
+SQL_MARK_PROCESSED = os.path.join(BASE_SQL_RAW_INSERT, 'mark_file_processed.sql')
+
+# Аргументы DAG по умолчанию
 default_args = {
-    'owner': 'ilona',                      
-    'depends_on_past': False,              
-    'retries': 2,                          
-    'retry_delay': timedelta(minutes=5),  
+    'owner': 'ilona',
+    'depends_on_past': False,
+    'retries': 2,
+    'retry_delay': timedelta(minutes=5),
 }
 
 
-def read_sql_file(path):
+def read_sql_file(path: str) -> str:
     """
-    Читает SQL-скрипт из указанного файла.
+    Читает SQL-скрипт из файла.
 
-    :param path: путь к SQL-файлу
-    :return: содержимое SQL-скрипта как строка
+    :param path: Путь до .sql-файла
+    :return: Строка с SQL-кодом
     """
     with open(path, 'r') as f:
         return f.read()
 
 
-def get_processed_files():
+def get_processed_files(pg_hook: PostgresHook) -> set:
     """
-    Получает множество имен уже обработанных файлов из лог-файла.
+    Получает множество имён уже обработанных файлов из таблицы raw.processed_files.
 
-    :return: set строк с именами обработанных файлов
+    :param pg_hook: Инстанс PostgresHook с активным соединением
+    :return: Множество имён файлов
     """
-    if not os.path.exists(PROCESSED_FILES_LOG):
-        return set()
-    with open(PROCESSED_FILES_LOG, 'r') as f:
-        return set(line.strip() for line in f.readlines())
+    sql = "SELECT filename FROM raw.processed_files"
+    return {r[0] for r in pg_hook.get_records(sql)}
 
 
-def mark_file_as_processed(filename):
+def mark_file_as_processed(pg_hook: PostgresHook, filename: str) -> None:
     """
-    Добавляет имя файла в лог уже обработанных.
+    Добавляет имя обработанного файла в таблицу raw.processed_files.
 
-    :param filename: имя обработанного файла
+    :param pg_hook: Инстанс PostgresHook
+    :param filename: Имя файла, который был успешно обработан
     """
-    with open(PROCESSED_FILES_LOG, 'a') as f:
-        f.write(f"{filename}\n")
+    sql = read_sql_file(SQL_MARK_PROCESSED)
+    pg_hook.run(sql, parameters=(filename,))
 
 
-def create_table():
+def create_raw_events_table() -> None:
     """
-    Проверяет и при необходимости создаёт таблицу raw.events.
-
-    Использует SQL-скрипт из sql/raw/create_raw_events.sql.
+    Создаёт таблицу raw.events, если она ещё не существует.
     """
-    pg_hook = PostgresHook(postgres_conn_id='Postgres')
-    sql = read_sql_file(SQL_CREATE_TABLE)
-    pg_hook.run(sql)
+    pg = PostgresHook(postgres_conn_id='Postgres')
+    pg.run(read_sql_file(SQL_CREATE_EVENTS))
     logging.info("Таблица raw.events проверена/создана.")
 
 
-def load_from_minio_to_postgres():
+def create_processed_files_table() -> None:
     """
-    Загружает новые события из MinIO в PostgreSQL:
+    Создаёт таблицу raw.processed_files, если она ещё не существует.
+    """
+    pg = PostgresHook(postgres_conn_id='Postgres')
+    pg.run(read_sql_file(SQL_CREATE_PROCESSED))
+    logging.info("Таблица raw.processed_files проверена/создана.")
 
-    - Получает список новых файлов
-    - Проводит базовую валидацию структуры
-    - Выполняет вставку в таблицу raw.events
-    - Отправляет сводные логи в Telegram (старт, количество, успех/ошибки, завершение)
-    - Запоминает уже обработанные файлы
+
+def load_from_minio_to_postgres() -> None:
+    """
+    Загружает новые события из файлов в MinIO в таблицу raw.events:
+    - Проверяет наличие необработанных файлов
+    - Валидирует каждый файл через Pydantic
+    - Записывает в PostgreSQL
+    - Фиксирует имя файла как обработанное
+    - Отправляет уведомления в Telegram при успехе и ошибках
+
+    :raises Exception: при ошибке чтения, десериализации или валидации
     """
     s3 = S3Hook(aws_conn_id='MinIO')
     pg = PostgresHook(postgres_conn_id='Postgres')
 
     notify_telegram("DAG load_raw_from_minio запущен")
+    create_processed_files_table()
 
-    # Прочитать уже обработанные файлы
-    processed_files = get_processed_files()
-
-    # Получить список всех объектов из bucket
-    bucket_name = os.getenv('MINIO_BUCKET_NAME', 'events')  # дефолт на всякий случай
-    files = s3.list_keys(bucket_name=bucket_name)
-
-    if not files:
-        msg = "Нет новых файлов в MinIO."
-        logging.info(msg)
-        notify_telegram(msg)
-        notify_telegram("[v] DAG load_raw_from_minio успешно завершён")
-        return
-
+    processed_files = get_processed_files(pg)
+    bucket = os.getenv('MINIO_BUCKET_NAME', 'events')
+    files = s3.list_keys(bucket_name=bucket) or []
     new_files = [f for f in files if f not in processed_files]
+
     if not new_files:
-        msg = "Все файлы уже обработаны."
-        logging.info(msg)
-        notify_telegram(msg)
+        notify_telegram("Нет новых файлов для обработки.")
         notify_telegram("[v] DAG load_raw_from_minio успешно завершён")
         return
 
-    insert_sql = read_sql_file(SQL_INSERT)
-
+    insert_sql = read_sql_file(SQL_INSERT_EVENT)
     success_count = 0
     errors = []
 
     for file_key in sorted(new_files):
         try:
-            file_obj = s3.read_key(key=file_key, bucket_name=bucket_name)
-            data = json.loads(file_obj)
-
-            # Валидация данных
+            content = s3.read_key(bucket_name=bucket, key=file_key)
+            if isinstance(content, bytes):
+                content = content.decode("utf-8")
+            data = json.loads(content)
             validated = Event(**data)
 
-            # Подготовка строки для вставки
             row = {
                 'event_id': validated.event_id,
                 'event_time': validated.event_time,
@@ -150,47 +148,51 @@ def load_from_minio_to_postgres():
                 'order_items': validated.order.order_items,
                 'total_amount': validated.order.total_amount,
                 'order_status': validated.order.status,
-                'campaign': validated.marketing.campaign,
-                'promocode': validated.marketing.promocode,
+                'campaign': validated.marketing.campaign or '',
+                'promocode': validated.marketing.promocode or '',
                 'user_campaign_id': validated.marketing.user_campaign_id,
                 'raw_payload': json.dumps(data),
             }
 
             pg.run(insert_sql, parameters=row)
-            mark_file_as_processed(file_key)
+            mark_file_as_processed(pg, file_key)
             success_count += 1
+
         except Exception as e:
-            logging.error(f"Ошибка при обработке файла {file_key}: {e}")
+            logging.exception(f"Ошибка при обработке {file_key}")
             errors.append(f"{file_key}: {e}")
 
-    # Итоговые уведомления
     notify_telegram(f"Обработано файлов: {success_count} из {len(new_files)}")
     if errors:
-        error_msg = "\n".join(errors)
-        notify_telegram(f"[x] Ошибки при обработке файлов:\n{error_msg}")
+        notify_telegram(f"[x] Ошибки при обработке:\n" + "\n".join(errors))
 
     notify_telegram("[v] DAG load_raw_from_minio успешно завершён")
 
 
-# Определение DAG-а и последовательности задач
 with DAG(
     dag_id='load_raw_from_minio',
     default_args=default_args,
     description='Загрузка событий из MinIO в raw слой PostgreSQL с валидацией и логированием',
     start_date=datetime(2025, 7, 1),
-    schedule_interval='@hourly',
+    schedule_interval=None,
     catchup=False,
     tags=['raw', 'minio', 'validation'],
 ) as dag:
-
-    create_table_task = PythonOperator(
+    """
+    DAG загружает JSON-события из MinIO в PostgreSQL:
+    - Проверяет наличие новых файлов
+    - Валидирует через Pydantic
+    - Записывает в таблицу raw.events
+    - Логирует обработанные файлы
+    """
+    create_raw_events_table_task = PythonOperator(
         task_id='create_raw_events_table',
-        python_callable=create_table,
+        python_callable=create_raw_events_table,
     )
 
-    load_data_task = PythonOperator(
+    load_and_validate_data_task = PythonOperator(
         task_id='load_and_validate_data',
         python_callable=load_from_minio_to_postgres,
     )
 
-    create_table_task >> load_data_task
+    create_raw_events_table_task >> load_and_validate_data_task

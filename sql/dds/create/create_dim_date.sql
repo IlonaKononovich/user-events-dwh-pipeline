@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS dds.dim_date (
+    id SERIAL PRIMARY KEY,
+    date DATE NOT NULL UNIQUE
+);
