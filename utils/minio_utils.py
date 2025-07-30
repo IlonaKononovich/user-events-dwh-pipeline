@@ -1,10 +1,17 @@
+import os
 import json
 import logging
 from typing import List, Tuple
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from utils.raw_validation import Event
-from utils.db_utils import mark_file_as_processed, get_processed_files
+from utils.db_utils import read_sql_file, mark_file_as_processed, get_processed_files
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BASE_SQL_RAW_INSERT = os.path.join(BASE_DIR, 'sql', 'raw', 'insert')
+SQL_INSERT_EVENT_INVALID = read_sql_file(
+    os.path.join(BASE_SQL_RAW_INSERT, 'insert_raw_events_invalid.sql')
+)
 
 def get_new_files(s3: S3Hook, pg: PostgresHook, bucket: str) -> List[str]:
     """
@@ -22,7 +29,8 @@ def get_new_files(s3: S3Hook, pg: PostgresHook, bucket: str) -> List[str]:
 
 def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, bucket: str ) -> Tuple[bool, str]:
     """
-    Обрабатывает один файл: читает, валидирует, записывает в БД, отмечает как обработанный.
+    Обрабатывает один файл: читает, валидирует, записывает в БД, 
+    при ошибке пишет в raw.events_invalid и отмечает файл как обработанный.
 
     :param file_key: Имя файла в MinIO
     :param s3: Инстанс S3Hook
@@ -31,6 +39,7 @@ def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, b
     :param bucket: Название бакета MinIO
     :return: Кортеж (успешно ли обработан, сообщение с ошибкой или пустая строка)
     """
+    data = None
     try:
         content = s3.read_key(bucket_name=bucket, key=file_key)
         if isinstance(content, bytes):
@@ -76,8 +85,33 @@ def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, b
 
     except Exception as e:
         logging.exception(f"Ошибка при обработке {file_key}")
+
+        event_id = None
+        event_time = None
+        try:
+            if isinstance(data, dict):
+                event_id = data.get("event_id")
+                event_time = data.get("event_time")
+        except Exception:
+            pass
+
+        try:
+            pg.run(
+                SQL_INSERT_EVENT_INVALID,
+                parameters=(
+                    file_key,
+                    event_id,
+                    event_time,
+                    str(e),
+                    json.dumps(data) if isinstance(data, (dict, list)) else str(data),
+                ),
+            )
+            mark_file_as_processed(pg, file_key)
+        except Exception as db_err:
+            logging.error(f"Не удалось записать {file_key} в events_invalid: {db_err}")
+
         return False, f"{file_key}: {e}"
-    
+
 
 if __name__ == "__main__":
     pass

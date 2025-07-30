@@ -1,23 +1,18 @@
 import os
-import logging
 from datetime import datetime, timedelta
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from utils.dds_validation import FactOrder
 from utils.telegram_logger import notify_telegram
+from utils.db_utils import read_sql_file, init_dds_layer
+from utils.dds_loader import fetch_new_raw_events, process_event, get_insert_dim_sql
 
 # Пути к SQL-скриптам
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-BASE_SQL_RAW_CREATE = os.path.join(BASE_DIR, 'sql', 'raw', 'create')
 BASE_SQL_RAW_INSERT = os.path.join(BASE_DIR, 'sql', 'raw', 'insert')
-BASE_SQL_DDS_CREATE = os.path.join(BASE_DIR, 'sql', 'dds', 'create')
 BASE_SQL_DDS_INSERT = os.path.join(BASE_DIR, 'sql', 'dds', 'insert')
-
-SQL_CREATE_PROCESSED_EVENTS = os.path.join(BASE_SQL_RAW_CREATE, 'create_processed_events.sql')
 SQL_MARK_EVENT_PROCESSED = os.path.join(BASE_SQL_RAW_INSERT, 'mark_event_processed.sql')
 
 default_args = {
@@ -27,151 +22,45 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-
-def read_sql_file(path: str) -> str:
+def init_dds_layer_wrapper() -> None:
     """
-    Читает SQL-скрипт из файла.
-
-    :param path: Путь к .sql файлу
-    :return: SQL-код в виде строки
-    """
-    with open(path, 'r') as f:
-        return f.read()
-
-
-def create_processed_events_table() -> None:
-    """
-    Создаёт таблицу raw.processed_events, если её нет.
+    Обёртка для инициализации DDS-слоя (схема + таблицы)
+    и таблицы raw.processed_events
 
     :return: None
     """
     pg = PostgresHook(postgres_conn_id='Postgres')
-    pg.run(read_sql_file(SQL_CREATE_PROCESSED_EVENTS), autocommit=True)
-    logging.info("Таблица raw.processed_events проверена/создана.")
-
-def create_dds_schema() -> None:
-    """
-    Создаёт схему dds, если её нет.
-
-    :return: None
-    """
-    pg = PostgresHook(postgres_conn_id='Postgres')
-    schema_path = os.path.join(BASE_SQL_DDS_CREATE, 'create_dds_schema.sql') 
-    sql = read_sql_file(schema_path)
-    pg.run(sql, autocommit=True)
-    logging.info("Схема dds проверена/создана.")
-
-
-def create_dds_tables() -> None:
-    """
-    Создаёт схему и все таблицы DDS.
-
-    :return: None
-    """
-    create_dds_schema()
-
-    pg = PostgresHook(postgres_conn_id='Postgres')
-    create_scripts = sorted(f for f in os.listdir(BASE_SQL_DDS_CREATE) if f != 'create_dds_schema.sql')
-
-    for script in create_scripts:
-        path = os.path.join(BASE_SQL_DDS_CREATE, script)
-        sql = read_sql_file(path)
-        pg.run(sql, autocommit=True)
-        logging.info(f"Таблица по скрипту {script} проверена/создана.")
-
-    notify_telegram("[v] Все таблицы DDS созданы или уже существуют.")
-
-
-
-def load_dim_data(event_dict: dict, pg: PostgresHook, insert_dim_sql: dict) -> None:
-    """
-    Вставляет данные в DIM таблицы.
-
-    :param event_dict: Словарь с данными события для вставки
-    :param pg: Инстанс PostgresHook для выполнения SQL
-    :param insert_dim_sql: Словарь с SQL для вставки в DIM таблицы
-    :return: None
-    """
-    for dim, sql in insert_dim_sql.items():
-        pg.run(sql, parameters=event_dict)
-
-
-def load_fact_data(event_dict: dict, pg: PostgresHook, insert_fact_sql: str) -> None:
-    """
-    Вставляет данные в FACT таблицу.
-
-    :param event_dict: Словарь с данными события для вставки
-    :param pg: Инстанс PostgresHook для выполнения SQL
-    :param insert_fact_sql: SQL для вставки в FACT таблицу
-    :return: None
-    """
-    pg.run(insert_fact_sql, parameters=event_dict)
+    init_dds_layer(pg)
 
 
 def load_raw_to_dds() -> None:
-    """
-    Загружает новые строки из raw.events в DDS:
-    - выбирает необработанные события,
-    - валидирует через Pydantic-модель,
-    - вставляет в dim и fact таблицы,
-    - отмечает событие как обработанное.
-
-    :return: None
-    """
     pg = PostgresHook(postgres_conn_id='Postgres')
     notify_telegram("DAG load_dds_from_raw запущен")
 
-    sql_new_events = """
-    SELECT * FROM raw.events e
-    WHERE NOT EXISTS (
-        SELECT 1 FROM raw.processed_events p WHERE p.event_id = e.event_id
-    )
-    ORDER BY event_time;
-    """
-
-    # Открываем курсор и выполняем запрос
-    conn = pg.get_conn()
-    cursor = conn.cursor()
-    cursor.execute(sql_new_events)
-    rows = cursor.fetchall()
-    columns = [desc[0] for desc in cursor.description]
+    rows, columns = fetch_new_raw_events(pg)
 
     if not rows:
         notify_telegram("Новых событий для обработки нет")
         return
 
-    insert_dim_sql = {
-        'date': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_date.sql')),
-        'device': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_device.sql')),
-        'location': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_location.sql')),
-        'product': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_product.sql')),
-        'session': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_session.sql')),
-        'user': read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_dim_user.sql')),
-    }
+    insert_dim_sql = get_insert_dim_sql()
     insert_fact_order_sql = read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_fact_order.sql'))
     mark_processed_sql = read_sql_file(SQL_MARK_EVENT_PROCESSED)
 
-    success_count, errors = 0, []
+    success_count = 0
+    errors = []
 
     for row in rows:
-        try:
-            event_dict = dict(zip(columns, row))
-            validated = FactOrder(**event_dict)
-
-            load_dim_data(event_dict, pg, insert_dim_sql)
-            load_fact_data(event_dict, pg, insert_fact_order_sql)
-
-            pg.run(mark_processed_sql, parameters=(validated.event_id,))
+        if process_event(row, columns, pg, insert_dim_sql, insert_fact_order_sql, mark_processed_sql):
             success_count += 1
-
-        except Exception as e:
-            logging.exception(f"Ошибка при обработке события {row[0]}")
-            errors.append(f"{row[0]}: {e}")
+        else:
+            errors.append(str(row[0]))
 
     notify_telegram(f"Обработано событий: {success_count} из {len(rows)}")
     if errors:
-        notify_telegram(f"[x] Ошибки:\n" + "\n".join(errors))
+        notify_telegram(f"[x] Ошибки при обработке событий: {', '.join(errors)}")
     notify_telegram("[v] DAG load_dds_from_raw успешно завершён")
+
 
 
 with DAG(
@@ -192,14 +81,9 @@ with DAG(
     - Отмечает события как обработанные в raw.processed_events
     - Отправляет уведомления в Telegram
     """
-    create_processed_events_table_task = PythonOperator(
-        task_id='create_processed_events_table',
-        python_callable=create_processed_events_table,
-    )
-
-    create_dds_tables_task = PythonOperator(
-        task_id='create_dds_tables',
-        python_callable=create_dds_tables,
+    init_dds_layer_task = PythonOperator(
+        task_id='init_dds_layer',
+        python_callable=init_dds_layer_wrapper,
     )
 
     load_raw_events_to_dds_task = PythonOperator(
@@ -207,4 +91,4 @@ with DAG(
         python_callable=load_raw_to_dds,
     )
 
-    create_processed_events_table_task >> create_dds_tables_task >> load_raw_events_to_dds_task
+    init_dds_layer_task >> load_raw_events_to_dds_task

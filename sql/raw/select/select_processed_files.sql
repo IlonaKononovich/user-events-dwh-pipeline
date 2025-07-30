@@ -1,0 +1,1 @@
+SELECT filename FROM raw.processed_files;

@@ -1,6 +1,4 @@
 import os
-import json
-import logging
 from datetime import datetime, timedelta
 
 from airflow import DAG
@@ -8,9 +6,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from utils.raw_validation import Event
 from utils.telegram_logger import notify_telegram
-from utils.db_utils import read_sql_file,create_raw_events_table,create_processed_files_table
+from utils.db_utils import read_sql_file, init_raw_layer
 from utils.minio_utils import get_new_files, process_file
 
 # Пути к SQL-скриптам
@@ -26,9 +23,15 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-def create_raw_events_table_wrapper():
+def init_raw_layer_wrapper() -> None:
+    """
+    Обёртка для инициализации RAW-слоя (схема + таблицы)
+
+    :return: None
+
+    """
     pg = PostgresHook(postgres_conn_id='Postgres')
-    create_raw_events_table(pg)
+    init_raw_layer(pg)
 
 
 def load_from_minio_to_postgres() -> None:
@@ -45,7 +48,6 @@ def load_from_minio_to_postgres() -> None:
     pg = PostgresHook(postgres_conn_id='Postgres')
 
     notify_telegram("DAG load_raw_from_minio запущен")
-    create_processed_files_table(pg)
 
     bucket = os.getenv('MINIO_BUCKET_NAME', 'events')
     new_files = get_new_files(s3, pg, bucket)
@@ -89,9 +91,9 @@ with DAG(
     - Записывает в таблицу raw.events
     - Логирует обработанные файлы
     """
-    create_raw_events_table_task = PythonOperator(
-        task_id='create_raw_events_table',
-        python_callable=create_raw_events_table_wrapper,
+    init_raw_layer_task = PythonOperator(
+        task_id='init_raw_layer',
+        python_callable=init_raw_layer_wrapper,
     )
 
     load_and_validate_data_task = PythonOperator(
@@ -99,4 +101,4 @@ with DAG(
         python_callable=load_from_minio_to_postgres,
     )
 
-    create_raw_events_table_task >> load_and_validate_data_task
+    init_raw_layer_task >> load_and_validate_data_task
