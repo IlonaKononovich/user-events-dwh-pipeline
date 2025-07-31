@@ -1,8 +1,19 @@
+"""
+Генератор событий для RAW слоя.
+
+Функции:
+- Генерирует реалистичные JSON-события (page_view, add_to_cart, purchase) с рандомизированными данными.
+- Управляет пулом пользователей и сессий для имитации повторных взаимодействий.
+- Загружает сформированные события в MinIO с организацией по датам.
+- Логирует процесс и отправляет уведомления в Telegram при ошибках.
+"""
+
 import os
 import io
 import json
 import time
 import logging
+import copy
 from uuid import uuid4
 from random import random, randint, choice
 from datetime import datetime, timedelta, timezone
@@ -17,10 +28,10 @@ logging.basicConfig(
     format='[%(asctime)s] %(levelname)s - %(message)s'
 )
 
-# белорусская/русская локализация
+# Белорусская/русская локализация
 fake = Faker("ru_RU")
 
-# Категории товаров с диапазонами цен и количеством в заказе
+# Категории товаров с диапазонами цен
 CATEGORIES = [
     {"name": "Электроника", "products": [
         {"name": "Смартфон", "price_range": (800, 2500), "qty_range": (1, 2)},
@@ -50,11 +61,11 @@ CAMPAIGNS = [
     "Время закупаться", "Любить себя", "День лучших покупок", "Cyber Monday"
 ]
 
-# Пулы пользователей и сессий с повторяемостью
-USER_POOL = [str(uuid4()) for _ in range(1000)]
-SESSION_POOL = {}
+# Пулы пользователей и сессий
+USER_POOL = {}      # user_id -> дата регистрации
+SESSION_POOL = {}   # user_id -> session_id
 
-# Конфигурация MinIO из переменных окружения
+# Конфигурация MinIO
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY")
@@ -67,8 +78,11 @@ client = Minio(
     secure=MINIO_ENDPOINT.startswith("https")
 )
 
-
-def ensure_bucket_exists():
+def ensure_bucket_exists() -> None:
+    """
+    Проверяет существование бакета и создает его при необходимости.
+    :return -> None
+    """
     try:
         if not client.bucket_exists(MINIO_BUCKET):
             client.make_bucket(MINIO_BUCKET)
@@ -81,39 +95,97 @@ def ensure_bucket_exists():
         notify_telegram(error_message)
         raise
 
-
-def generate_event():
-    # Текущее время события в UTC — базовая временная метка
-    event_time = datetime.now(timezone.utc)
-    event_time_str = event_time.isoformat()
-
-    # Выбираем пользователя (80% - из пула, 20% - новый)
+def get_or_create_user() -> tuple[str, str]:
+    """
+    Возвращает user_id и дату регистрации.
+    80% — старые пользователи.
+    :return -> (user_id: str, created_at: str[ISO8601])
+    """
     if random() < 0.8 and USER_POOL:
-        user_id = choice(USER_POOL)
+        user_id = choice(list(USER_POOL.keys()))
+        created_at = USER_POOL[user_id]
     else:
         user_id = str(uuid4())
-        USER_POOL.append(user_id)
+        created_at = datetime.now(timezone.utc).isoformat()
+        USER_POOL[user_id] = created_at
+    return user_id, created_at
 
-    # Определяем сессию (70% повторяемая, 30% новая)
+def get_or_create_session(user_id: str) -> str:
+    """
+    Возвращает session_id для пользователя (70% — старая сессия).
+    :param user_id: str
+    :return -> session_id: str
+    """
     if user_id in SESSION_POOL and random() < 0.7:
-        session_id = SESSION_POOL[user_id]
+        return SESSION_POOL[user_id]
     else:
         session_id = str(uuid4())
         SESSION_POOL[user_id] = session_id
+        return session_id
 
-    # Выбираем категорию и товар, рассчитываем количество и цену
+def generate_event() -> dict:
+    """
+    Генерирует событие веб-аналитики для RAW слоя.
+    Поддерживает page_view / add_to_cart / purchase.
+    :return -> dict (JSON-совместимый словарь события)
+    """
+    event_time = datetime.now(timezone.utc)
+    event_time_str = event_time.isoformat()
+    event_date = event_time.date().isoformat()  # для dim_date
+
+    # Тип события
+    rnd = random()
+    if rnd < 0.8:
+        event_type = "page_view"
+    elif rnd < 0.95:
+        event_type = "add_to_cart"
+    else:
+        event_type = "purchase"
+
+    # Пользователь и сессия
+    user_id, user_created_at = get_or_create_user()
+    session_id = get_or_create_session(user_id)
+
+    # Базовые данные сессии
+    session_duration = timedelta(minutes=randint(1, 30))
+    end_time = (event_time + session_duration).isoformat()
+    pages_viewed = randint(1, 10)
+
+    # Формируем продукты для события
+    products = []
     category = choice(CATEGORIES)
     product = choice(category["products"])
     quantity = randint(*product["qty_range"])
     price = round(random() * (product["price_range"][1] - product["price_range"][0]) + product["price_range"][0], 2)
-    total_amount = round(price * quantity, 2)
+    total_amount = price * quantity
 
-    # Длительность сессии — до 30 минут
-    session_duration = timedelta(minutes=randint(1, 30))
-    end_time = (event_time + session_duration).isoformat()
+    products.append({
+        "product_id": str(uuid4()),
+        "name": product["name"],
+        "category": category["name"],
+        "supplier": fake.company(),
+        "price": price,
+        "quantity": quantity
+    })
 
-    # Маркетинг — 30% заказов с промокодом и кампанией, остальные — None
-    if random() < 0.3:
+    if event_type == "purchase" and random() < 0.3:
+        for _ in range(randint(1, 2)):
+            category = choice(CATEGORIES)
+            product = choice(category["products"])
+            quantity = randint(*product["qty_range"])
+            price = round(random() * (product["price_range"][1] - product["price_range"][0]) + product["price_range"][0], 2)
+            total_amount += price * quantity
+            products.append({
+                "product_id": str(uuid4()),
+                "name": product["name"],
+                "category": category["name"],
+                "supplier": fake.company(),
+                "price": price,
+                "quantity": quantity
+            })
+
+    # Маркетинг
+    if event_type == "purchase" and random() < 0.3:
         campaign = choice(CAMPAIGNS)
         promocode = fake.lexify(text="?????-2025")
         user_campaign_id = str(uuid4())
@@ -122,10 +194,19 @@ def generate_event():
         promocode = None
         user_campaign_id = None
 
-    return {
-        "event_id": str(uuid4()),
-        "event_time": event_time_str,
+    # Статус заказа
+    order_status = None
+    if event_type == "purchase":
+        order_status = choice(
+            ["paid"] * 6 + ["shipped"] * 2 + ["created"] * 1 + ["cancelled"] * 1
+        )
 
+    # Формируем финальное событие
+    event = {
+        "event_id": str(uuid4()),
+        "event_type": event_type,
+        "event_time": event_time_str,
+        "event_date": event_date,
         "user": {
             "user_id": user_id,
             "email": fake.email(),
@@ -133,22 +214,14 @@ def generate_event():
             "profile": {
                 "name": fake.name(),
                 "birth_date": fake.date_of_birth(minimum_age=18, maximum_age=65).isoformat(),
-                "created_at": event_time_str
+                "created_at": user_created_at
             }
         },
-
-        "product": {
-            "product_id": str(uuid4()),
-            "name": product["name"],
-            "category": category["name"],
-            "supplier": fake.company(),
-            "price": price
-        },
-
         "session": {
             "session_id": session_id,
             "start_time": event_time_str,
             "end_time": end_time,
+            "pages_viewed": pages_viewed,
             "device": {
                 "type": choice(["mobile", "desktop", "tablet"]),
                 "os": choice(["Windows", "iOS", "Linux", "Android"]),
@@ -158,37 +231,40 @@ def generate_event():
                 }
             }
         },
-
+        "products": products if event_type in ["add_to_cart", "purchase"] else None,
         "order": {
             "order_id": str(uuid4()),
             "payment_id": str(uuid4()),
-            "order_items": quantity,
-            "total_amount": total_amount,
-            "status": choice(["created", "paid", "shipped", "cancelled"])
-        },
-
+            "order_items": sum(p["quantity"] for p in products),
+            "total_amount": float(round(total_amount, 2)),
+            "status": order_status
+        } if event_type == "purchase" else None,
         "marketing": {
             "campaign": campaign,
             "promocode": promocode,
             "user_campaign_id": user_campaign_id
         }
     }
+    event_copy = copy.deepcopy(event)
+    event_copy.pop("raw_payload", None)
+    event["raw_payload"] = event_copy
+    return event
 
-
-def main():
-    # Проверка и создание бакета в MinIO
+def main() -> None:
+    """
+    Основной цикл генерации событий и загрузки их в MinIO.
+    :return -> None
+    """
     ensure_bucket_exists()
 
     while True:
         try:
-            # Генерация события и формирование имени файла с датой и временем
             event = generate_event()
             now = datetime.now(timezone.utc)
-            timestamp = now.strftime("%Y%m%d_%H%M%S")
+            timestamp = now.strftime("%Y%m%d_%H%M%S_%f")
             date_prefix = now.strftime("%Y-%m-%d")
             filename = f"{date_prefix}/event_{timestamp}.json"
 
-            # Сериализация события в JSON и отправка в MinIO
             json_bytes = json.dumps(event, indent=2, ensure_ascii=False).encode("utf-8")
             client.put_object(
                 bucket_name=MINIO_BUCKET,
@@ -198,16 +274,14 @@ def main():
                 content_type="application/json"
             )
 
-            logging.info(f"Событие {filename} успешно загружено в MinIO")
+            logging.info(f"Событие {filename} ({event['event_type']}) успешно загружено в MinIO")
 
         except Exception as e:
             error_message = f"[x] Ошибка генерации или загрузки события: {e}"
             logging.error(error_message)
             notify_telegram(error_message)
 
-        # Задержка в 60 секунд перед генерацией следующего события
         time.sleep(60)
-
 
 if __name__ == "__main__":
     main()

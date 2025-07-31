@@ -1,3 +1,3 @@
 INSERT INTO dds.dim_date (date)
-VALUES (DATE(%(event_time)s))
+VALUES (%(event_date)s)
 ON CONFLICT (date) DO NOTHING;

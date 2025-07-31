@@ -1,17 +1,16 @@
 INSERT INTO raw.events (
     event_id,
+    event_type,
     event_time,
+    event_date,
+    
     user_id,
     email,
     referral_code,
     user_name,
     birth_date,
     profile_created_at,
-    product_id,
-    product_name,
-    category,
-    supplier,
-    price,
+
     session_id,
     session_start_time,
     session_end_time,
@@ -19,31 +18,35 @@ INSERT INTO raw.events (
     device_os,
     location_country,
     location_city,
+    pages_viewed,
+
+    products,           
     order_id,
     payment_id,
     order_items,
     total_amount,
     order_status,
+
     campaign,
     promocode,
     user_campaign_id,
+
     raw_payload,
     created_at
 )
 VALUES (
     %(event_id)s,
+    %(event_type)s,
     %(event_time)s,
+    %(event_date)s,
+
     %(user_id)s,
     %(email)s,
     %(referral_code)s,
     %(user_name)s,
     %(birth_date)s,
     %(profile_created_at)s,
-    %(product_id)s,
-    %(product_name)s,
-    %(category)s,
-    %(supplier)s,
-    %(price)s,
+
     %(session_id)s,
     %(session_start_time)s,
     %(session_end_time)s,
@@ -51,14 +54,19 @@ VALUES (
     %(device_os)s,
     %(location_country)s,
     %(location_city)s,
+    %(pages_viewed)s,
+
+    %(products)s,       
     %(order_id)s,
     %(payment_id)s,
     %(order_items)s,
     %(total_amount)s,
     %(order_status)s,
+
     %(campaign)s,
     %(promocode)s,
     %(user_campaign_id)s,
+
     %(raw_payload)s,
     NOW()
 );

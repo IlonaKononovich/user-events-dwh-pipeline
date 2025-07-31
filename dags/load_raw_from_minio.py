@@ -7,13 +7,11 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from utils.telegram_logger import notify_telegram
-from utils.db_utils import read_sql_file, init_raw_layer
-from utils.minio_utils import get_new_files, process_file
+from utils.sql_db.sql_utils import read_sql_file
+from utils.sql_db.schema_and_tables_init import init_raw_layer
+from utils.loading.raw_loader import get_new_files, process_file
+from utils.sql_db.sql_paths import SQL_INSERT_EVENT
 
-# Пути к SQL-скриптам
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-BASE_SQL_RAW_INSERT = os.path.join(BASE_DIR, 'sql', 'raw', 'insert')
-SQL_INSERT_EVENT = os.path.join(BASE_SQL_RAW_INSERT, 'insert_raw_events.sql')
 
 # Аргументы DAG по умолчанию
 default_args = {
@@ -26,7 +24,6 @@ default_args = {
 def init_raw_layer_wrapper() -> None:
     """
     Обёртка для инициализации RAW-слоя (схема + таблицы)
-
     :return: None
 
     """
@@ -49,7 +46,7 @@ def load_from_minio_to_postgres() -> None:
 
     notify_telegram("DAG load_raw_from_minio запущен")
 
-    bucket = os.getenv('MINIO_BUCKET_NAME', 'events')
+    bucket = os.getenv('MINIO_BUCKET', 'events')
     new_files = get_new_files(s3, pg, bucket)
 
     if not new_files:
@@ -82,7 +79,7 @@ with DAG(
     start_date=datetime(2025, 7, 1),
     schedule_interval=None,
     catchup=False,
-    tags=['raw', 'minio', 'validation'],
+    tags=['raw'],
 ) as dag:
     """
     DAG загружает JSON-события из MinIO в PostgreSQL:

@@ -6,14 +6,11 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from utils.telegram_logger import notify_telegram
-from utils.db_utils import read_sql_file, init_dds_layer
-from utils.dds_loader import fetch_new_raw_events, process_event, get_insert_dim_sql
+from utils.sql_db.sql_utils import read_sql_file, init_dds_layer
+from utils.loading.dds_loader import fetch_new_raw_events, process_event, get_insert_dim_sql, get_insert_fact_sql
+from utils.validation.sql.sql_paths import BASE_DIR, BASE_SQL_RAW_INSERT, BASE_SQL_DDS_INSERT, SQL_MARK_EVENT_PROCESSED
 
-# Пути к SQL-скриптам
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-BASE_SQL_RAW_INSERT = os.path.join(BASE_DIR, 'sql', 'raw', 'insert')
-BASE_SQL_DDS_INSERT = os.path.join(BASE_DIR, 'sql', 'dds', 'insert')
-SQL_MARK_EVENT_PROCESSED = os.path.join(BASE_SQL_RAW_INSERT, 'mark_event_processed.sql')
+
 
 default_args = {
     'owner': 'ilona',
@@ -34,6 +31,23 @@ def init_dds_layer_wrapper() -> None:
 
 
 def load_raw_to_dds() -> None:
+    """
+    Загружает необработанные события из raw слоя в DDS слой, валидирует и вставляет данные в DIM и FACT таблицы.
+    Отмечает события как обработанные и отправляет уведомления в Telegram.
+
+    Последовательность действий:
+    1. Подключается к Postgres через PostgresHook.
+    2. Получает необработанные события из raw.events.
+    3. Если событий нет — уведомляет и завершает выполнение.
+    4. Загружает SQL для вставки в DIM и FACT таблицы.
+    5. Обрабатывает каждое событие через функцию process_event.
+    6. Подсчитывает успешные обработки и собирает ошибки.
+    7. Отправляет итоговые уведомления в Telegram.
+
+    :return: None — функция выполняет загрузку и логирование, не возвращает значения.
+    :raises Exception: Пробрасывает исключения, если возникает ошибка соединения с БД,
+                      чтения файлов SQL или выполнения SQL запросов в процессе обработки.
+    """
     pg = PostgresHook(postgres_conn_id='Postgres')
     notify_telegram("DAG load_dds_from_raw запущен")
 
@@ -44,14 +58,14 @@ def load_raw_to_dds() -> None:
         return
 
     insert_dim_sql = get_insert_dim_sql()
-    insert_fact_order_sql = read_sql_file(os.path.join(BASE_SQL_DDS_INSERT, 'insert_fact_order.sql'))
+    insert_fact_sql = get_insert_fact_sql()
     mark_processed_sql = read_sql_file(SQL_MARK_EVENT_PROCESSED)
 
     success_count = 0
     errors = []
 
     for row in rows:
-        if process_event(row, columns, pg, insert_dim_sql, insert_fact_order_sql, mark_processed_sql):
+        if process_event(row, columns, pg, insert_dim_sql, insert_fact_sql, mark_processed_sql):
             success_count += 1
         else:
             errors.append(str(row[0]))
@@ -63,6 +77,7 @@ def load_raw_to_dds() -> None:
 
 
 
+
 with DAG(
     dag_id='load_dds_from_raw',
     default_args=default_args,
@@ -70,7 +85,7 @@ with DAG(
     start_date=datetime(2025, 7, 1),
     schedule_interval=None,
     catchup=False,
-    tags=['dds', 'raw', 'validation'],
+    tags=['dds'],
 ) as dag:
     """
     DAG загружает и валидирует необработанные события из слоя raw в слой DDS (звёздная схема):

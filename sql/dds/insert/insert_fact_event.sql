@@ -1,32 +1,42 @@
-INSERT INTO dds.fact_order (
-    order_id,
-    payment_id,
-    order_items,
-    total_amount,
-    order_status,
+INSERT INTO dds.fact_event (
+    event_id,
+    event_type,
+    event_time,
+    event_date,
     user_id,
     session_id,
     device_id,
     location_id,
     date_id,
     marketing_id,
-    event_time,
-    raw_event_id
+    pages_viewed,
+    products,
+    order_id,
+    payment_id,
+    order_items,
+    total_amount,
+    order_status,
+    raw_payload
 )
-SELECT DISTINCT
+SELECT
+    r.event_id,
+    r.event_type,
+    r.event_time,
+    r.event_date,
+    u.user_id AS user_id,
+    s.id AS session_id,
+    d.id AS device_id,
+    l.id AS location_id,
+    dt.id AS date_id,
+    m.id AS marketing_id,
+    r.pages_viewed,
+    r.products,
     r.order_id,
     r.payment_id,
     r.order_items,
-    COALESCE(r.total_amount, 0)::NUMERIC(18,2),
+    r.total_amount,
     r.order_status,
-    u.user_id,
-    s.id,
-    d.id,
-    l.id,
-    dt.id,
-    m.id,
-    r.event_time,
-    r.event_id
+    r.raw_payload
 FROM raw.events r
 JOIN dds.dim_user u ON u.user_id = r.user_id
 JOIN dds.dim_session s ON s.session_id = r.session_id
@@ -37,9 +47,6 @@ LEFT JOIN dds.dim_marketing m
     ON COALESCE(m.campaign, '') = COALESCE(r.campaign, '')
     AND COALESCE(m.promocode, '') = COALESCE(r.promocode, '')
     AND COALESCE(m.user_campaign_id::text, '') = COALESCE(r.user_campaign_id::text, '')
-LEFT JOIN dds.fact_order fo ON fo.order_id = r.order_id
-WHERE fo.order_id IS NULL
-  AND r.order_id IS NOT NULL
-  AND r.payment_id IS NOT NULL
-  AND r.order_items > 0
-  AND r.order_status IN ('created', 'paid', 'shipped', 'cancelled');
+LEFT JOIN dds.fact_event fe ON fe.event_id = r.event_id
+WHERE fe.event_id IS NULL
+  AND r.event_type IN ('page_view', 'add_to_cart', 'purchase');
