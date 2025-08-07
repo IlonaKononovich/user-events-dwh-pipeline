@@ -1,3 +1,4 @@
 INSERT INTO dds.dim_location (country, city)
-VALUES (%(location_country)s, %(location_city)s)
-ON CONFLICT (country, city) DO NOTHING;
+VALUES (%s, %s)
+ON CONFLICT (country, city) DO NOTHING
+RETURNING id;

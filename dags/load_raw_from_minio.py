@@ -1,5 +1,7 @@
 import os
 from datetime import datetime, timedelta
+import logging
+from typing import List, Dict, Any
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -7,10 +9,10 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from utils.telegram_logger import notify_telegram
-from utils.sql_db.sql_utils import read_sql_file
-from utils.sql_db.schema_and_tables_init import init_raw_layer
-from utils.loading.raw_loader import get_new_files, process_file
-from utils.sql_db.sql_paths import SQL_INSERT_EVENT
+from utils.sql_db.schema_and_tables_init import init_raw_layer, mark_file_as_processed
+from utils.loading.raw_loader import get_new_files
+from utils.constants import RAW_EVENT_COLUMNS, RAW_EVENT_INVALID_COLUMNS
+from utils.loading.raw_loader import parse_file, insert_batch
 
 
 # Аргументы DAG по умолчанию
@@ -31,20 +33,17 @@ def init_raw_layer_wrapper() -> None:
     init_raw_layer(pg)
 
 
-def load_from_minio_to_postgres() -> None:
+def load_from_minio_to_postgres(batch_size: int = 10) -> None:
     """
-    Основная функция загрузки новых событий из MinIO в raw.events:
-    - Получает новые файлы
-    - Обрабатывает каждый файл через функцию process_file
-    - Логирует успешные и ошибочные обработки
-    - Отправляет уведомления в Telegram
+    Загружает события из MinIO в raw.events батчами с защитой от сбоев.
 
-    :raises Exception: при ошибках чтения, десериализации или валидации
+    :param batch_size: Размер батча для вставки в БД.
     """
     s3 = S3Hook(aws_conn_id='MinIO')
     pg = PostgresHook(postgres_conn_id='Postgres')
 
     notify_telegram("DAG load_raw_from_minio запущен")
+    logging.info("Загрузка новых событий из MinIO в raw.events начата")
 
     bucket = os.getenv('MINIO_BUCKET', 'events')
     new_files = get_new_files(s3, pg, bucket)
@@ -52,24 +51,58 @@ def load_from_minio_to_postgres() -> None:
     if not new_files:
         notify_telegram("Нет новых файлов для обработки.")
         notify_telegram("[v] DAG load_raw_from_minio успешно завершён")
+        logging.info("Новых файлов для обработки не найдено")
         return
 
-    insert_sql = read_sql_file(SQL_INSERT_EVENT)
+    batch_rows: List[Dict[str, Any]] = []
+    error_rows: List[Dict[str, Any]] = []
     success_count = 0
-    errors = []
+
+    # Используем множества, чтобы избежать дублирования файлов
+    success_files: set[str] = set()
+    error_files: set[str] = set()
 
     for file_key in sorted(new_files):
-        success, error_msg = process_file(file_key, s3, pg, insert_sql, bucket)
-        if success:
+        row, error_row = parse_file(file_key, s3, bucket)
+
+        if row:
+            batch_rows.append(row)
+            success_files.add(file_key)
             success_count += 1
-        else:
-            errors.append(error_msg)
+        if error_row:
+            error_rows.append(error_row)
+            error_files.add(file_key)
+
+        # Вставка батчей успешных событий
+        if len(batch_rows) >= batch_size:
+            if insert_batch(pg, "raw.events", batch_rows, RAW_EVENT_COLUMNS, batch_type="events"):
+                for f in success_files:
+                    mark_file_as_processed(pg, f)
+                success_files.clear()
+            batch_rows.clear()
+
+        # Вставка батчей с ошибками
+        if len(error_rows) >= batch_size:
+            if insert_batch(pg, "raw.events_invalid", error_rows, RAW_EVENT_INVALID_COLUMNS, batch_type="invalid"):
+                for f in error_files:
+                    mark_file_as_processed(pg, f)
+                error_files.clear()
+            error_rows.clear()
+
+    # Вставляем остаток
+    if batch_rows:
+        if insert_batch(pg, "raw.events", batch_rows, RAW_EVENT_COLUMNS, batch_type="events"):
+            for f in success_files:
+                mark_file_as_processed(pg, f)
+    if error_rows:
+        if insert_batch(pg, "raw.events_invalid", error_rows, RAW_EVENT_INVALID_COLUMNS, batch_type="invalid"):
+            for f in error_files:
+                mark_file_as_processed(pg, f)
 
     notify_telegram(f"Обработано файлов: {success_count} из {len(new_files)}")
-    if errors:
-        notify_telegram(f"[x] Ошибки при обработке:\n" + "\n".join(errors))
-
     notify_telegram("[v] DAG load_raw_from_minio успешно завершён")
+    logging.info(f"Загрузка завершена. Успешно обработано файлов: {success_count}")
+
 
 
 with DAG(

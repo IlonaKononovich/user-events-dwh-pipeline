@@ -1,15 +1,16 @@
 """
-Модуль инициализации схем и таблиц в базе данных.
+Модуль для инициализации схем и таблиц PostgreSQL на слоях RAW и DDS.
 
-Содержит функции для создания RAW и DDS схем и таблиц,
-а также функции для инициализации слоёв данных.
+Содержит функции создания схем, таблиц из SQL-файлов,
+инициализации слоёв данных, а также управление списком
+обработанных файлов для предотвращения повторной загрузки.
 
-Функции обеспечивают последовательное создание необходимых объектов
-с логированием успешных операций и ошибок.
+Функции логируют результат и обеспечивают обработку ошибок.
 """
 
 import os
 import logging
+from typing import Set
 
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
@@ -20,9 +21,15 @@ from utils.sql_db.sql_paths import (
     SQL_CREATE_PROCESSED,
     SQL_CREATE_EVENTS_INVALID,
     SQL_CREATE_DDS_SCHEMA,
+    SQL_SELECT_PROCESSED_FILES,
+    SQL_MARK_PROCESSED,
+    BASE_SQL_DDS_CREATE,
+    SQL_CREATE_STAGING_SCHEMA,
+    SQL_CREATE_STAGING_EVENTS
 )
+
 from utils.constants import CREATE_DDS_ORDER
-from utils.loading.raw_processed_files import create_processed_events_table
+from utils.sql_db.sql_utils import run_select_query
 
 
 def create_schema(pg_hook: PostgresHook, schema_name: str, sql_path: str) -> None  :
@@ -114,6 +121,38 @@ def init_raw_layer(pg_hook: PostgresHook) -> None:
     create_raw_events_invalid_table(pg_hook)
     logging.info("RAW-слой успешно инициализирован.")
 
+def create_staging_schema(pg_hook: PostgresHook) -> None:
+    """
+    Создаёт схему staging в базе данных, если она ещё не существует.
+
+    :param pg_hook: Экземпляр PostgresHook для выполнения SQL-запросов.
+    :return: None
+    """
+    create_schema(pg_hook, 'staging', SQL_CREATE_STAGING_SCHEMA)
+
+
+def create_staging_events_table(pg_hook: PostgresHook) -> None:
+    """
+    Создаёт таблицу staging.events, если она ещё не существует.
+
+    :param pg_hook: Экземпляр PostgresHook с активным соединением.
+    :return: None
+    """
+    create_table_from_file(pg_hook, SQL_CREATE_STAGING_EVENTS, 'staging.events')
+
+
+def init_staging_layer(pg_hook: PostgresHook) -> None:
+    """
+    Инициализация Staging-слоя: создаёт схему staging и таблицу
+    (staging.events).
+
+    :param pg_hook: Экземпляр PostgresHook с активным соединением.
+    :return: None
+    """
+    create_staging_schema(pg_hook)
+    create_staging_events_table(pg_hook)
+    logging.info("Staging-слой успешно инициализирован.")
+
 
 def create_dds_schema(pg_hook: PostgresHook) -> None:
     """
@@ -143,15 +182,38 @@ def create_dds_tables(pg_hook: PostgresHook) -> None:
         raise
 
 
+def get_processed_files(pg_hook: PostgresHook) -> Set[str]:
+    """
+    Получает множество имён уже обработанных файлов из таблицы raw.processed_files.
+
+    :param pg_hook: Экземпляр PostgresHook с активным соединением.
+    :return: Множество строк — имена обработанных файлов.
+    :raises Exception: Если запрос к БД завершился с ошибкой.
+    """
+    records = run_select_query(pg_hook, SQL_SELECT_PROCESSED_FILES)
+    return {r[0] for r in records}
+
+
+def mark_file_as_processed(pg_hook: PostgresHook, filename: str) -> None:
+    """
+    Добавляет имя обработанного файла в таблицу raw.processed_files.
+
+    :param pg_hook: Экземпляр PostgresHook с активным соединением.
+    :param filename: Имя файла, который был успешно обработан.
+    :return: None
+    :raises Exception: Если вставка в таблицу завершилась с ошибкой.
+    """
+    sql = read_sql_file(SQL_MARK_PROCESSED)
+    pg_hook.run(sql, parameters=(filename,), autocommit=True)
+
+
 def init_dds_layer(pg_hook: PostgresHook) -> None:
     """
     Инициализация DDS-слоя: создаёт схему dds, все таблицы из папки sql/dds/create
-    и таблицу raw.processed_events
 
     :param pg_hook: Экземпляр PostgresHook с активным соединением.
     :return: None
     """
     create_dds_schema(pg_hook)
     create_dds_tables(pg_hook)
-    create_processed_events_table(pg_hook)
     logging.info("DDS-слой успешно инициализирован.")

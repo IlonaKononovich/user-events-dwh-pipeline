@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS dds.dim_user (
-    user_id UUID PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    user_id UUID UNIQUE NOT NULL,
     email TEXT NOT NULL,
     referral_code TEXT NOT NULL,
     user_name TEXT NOT NULL,

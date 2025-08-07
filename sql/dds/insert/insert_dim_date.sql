@@ -1,3 +1,4 @@
 INSERT INTO dds.dim_date (date)
-VALUES (%(event_date)s)
-ON CONFLICT (date) DO NOTHING;
+VALUES (%s)
+ON CONFLICT (date) DO NOTHING
+RETURNING id;

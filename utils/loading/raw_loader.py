@@ -4,32 +4,32 @@
 Содержит функции для:
 - сериализации специфичных типов данных в JSON,
 - получения списка новых файлов из MinIO, которые ещё не были обработаны,
-- валидации и вставки событий в таблицу raw.events,
-- обработки ошибок и записи некорректных событий в raw.events_invalid,
-- отметки файлов как обработанных.
+- валидации и батчевой вставки событий в таблицу raw.events,
+- записи некорректных событий в raw.events_invalid,
+- корректной пометки файлов как обработанных.
 
 Использует Airflow хуки для взаимодействия с MinIO и PostgreSQL.
 """
 
 import json
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime, date
+
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from validation.raw_validation import Event
-from utils.loading.raw_processed_files import mark_file_as_processed, get_processed_files
+from utils.sql_db.schema_and_tables_init import get_processed_files
+from utils.telegram_logger import notify_telegram
 
-from sql_db.sql_paths import SQL_INSERT_EVENT_INVALID
 
-
-def json_serializer(obj) -> str:
+def json_serializer(obj: Any) -> str:
     """
     Кастомный сериализатор для JSON, преобразует UUID и datetime в строки.
 
-    :param obj: Объект для сериализации (может быть UUID, datetime, date).
+    :param obj: Объект для сериализации (UUID, datetime, date).
     :return: Строковое представление объекта.
     :raises TypeError: Если тип объекта не поддерживается сериализацией.
     """
@@ -54,17 +54,14 @@ def get_new_files(s3: S3Hook, pg: PostgresHook, bucket: str) -> List[str]:
     return [f for f in files if f not in processed_files]
 
 
-def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, bucket: str) -> Tuple[bool, str]:
+def parse_file(file_key: str, s3: S3Hook, bucket: str) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
     """
-    Обрабатывает один файл: читает, валидирует, формирует параметры для вставки,
-    записывает в raw.events, при ошибке пишет в raw.events_invalid и отмечает файл как обработанный.
+    Читает и валидирует файл из MinIO.
 
     :param file_key: Имя файла в MinIO.
     :param s3: Инстанс S3Hook.
-    :param pg: Инстанс PostgresHook.
-    :param insert_sql: SQL-запрос для вставки события.
     :param bucket: Название бакета MinIO.
-    :return: Кортеж (успешно ли обработан, сообщение с ошибкой или пустая строка).
+    :return: Кортеж (row_dict для вставки в raw.events, error_dict для вставки в raw.events_invalid).
     """
     data: Optional[dict] = None
     try:
@@ -75,10 +72,10 @@ def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, b
         data = json.loads(content)
         validated = Event(**data)
 
+        # Преобразуем продукты и исходный payload в JSONB
         products_jsonb = None
         if validated.products:
-            products_list = [prod.dict() for prod in validated.products]
-            products_jsonb = json.dumps(products_list, default=json_serializer)
+            products_jsonb = json.dumps([prod.dict() for prod in validated.products], default=json_serializer)
 
         raw_payload_jsonb = json.dumps(data, default=json_serializer)
 
@@ -118,39 +115,49 @@ def process_file(file_key: str, s3: S3Hook, pg: PostgresHook, insert_sql: str, b
 
             "raw_payload": raw_payload_jsonb,
         }
-
-        pg.run(insert_sql, parameters=row)
-        mark_file_as_processed(pg, file_key)
-        return True, ""
+        return row, None
 
     except Exception as e:
-        logging.exception(f"Ошибка при обработке файла {file_key}")
+        logging.error(f"Ошибка при разборе файла {file_key}: {e}")
+        error_row = {
+            "file_name": file_key,
+            "event_id": data.get("event_id") if isinstance(data, dict) else None,
+            "event_time": data.get("event_time") if isinstance(data, dict) else None,
+            "error_message": str(e),
+            "raw_payload": json.dumps(data) if isinstance(data, (dict, list)) else str(data),
+        }
+        return None, error_row
 
-        event_id = None
-        event_time = None
-        try:
-            if isinstance(data, dict):
-                event_id = data.get("event_id")
-                event_time = data.get("event_time")
-        except Exception:
-            pass
 
-        try:
-            pg.run(
-                SQL_INSERT_EVENT_INVALID,
-                parameters=(
-                    file_key,
-                    event_id,
-                    event_time,
-                    str(e),
-                    json.dumps(data) if isinstance(data, (dict, list)) else str(data),
-                ),
-            )
-            mark_file_as_processed(pg, file_key)
-        except Exception as db_err:
-            logging.error(f"Не удалось записать файл {file_key} в events_invalid: {db_err}")
+def insert_batch(
+    pg: PostgresHook,
+    table: str,
+    rows: List[Dict[str, Any]],
+    columns: List[str],
+    batch_type: str
+) -> bool:
+    """
+    Вставляет батч строк в указанную таблицу с защитой от падения DAG.
 
-        return False, f"{file_key}: {e}"
+    :param pg: Хук Postgres.
+    :param table: Имя таблицы.
+    :param rows: Список строк (dict).
+    :param columns: Список колонок в порядке вставки.
+    :param batch_type: Тип батча (для логов: events / invalid).
+    :return: True, если вставка успешна, False — если произошла ошибка.
+    """
+    try:
+        pg.insert_rows(
+            table=table,
+            rows=[tuple(r[col] for col in columns) for r in rows],
+            target_fields=columns
+        )
+        logging.info(f"[BATCH OK] Вставлено {len(rows)} строк в {table}")
+        return True
+    except Exception as e:
+        logging.error(f"[BATCH FAIL] Ошибка при вставке {batch_type} батча: {e}")
+        notify_telegram(f"[x] Ошибка вставки батча в {table}: {e}")
+        return False
 
 
 if __name__ == "__main__":

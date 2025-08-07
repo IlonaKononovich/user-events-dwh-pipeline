@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS dds.fact_event (
     event_time TIMESTAMPTZ NOT NULL,
     event_date DATE NOT NULL,
 
-    user_id UUID NOT NULL REFERENCES dds.dim_user(user_id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES dds.dim_user(id) ON DELETE CASCADE,
     session_id INT NOT NULL REFERENCES dds.dim_session(id) ON DELETE CASCADE,
     device_id INT NOT NULL REFERENCES dds.dim_device(id) ON DELETE CASCADE,
     location_id INT NOT NULL REFERENCES dds.dim_location(id) ON DELETE CASCADE,
@@ -22,11 +22,9 @@ CREATE TABLE IF NOT EXISTS dds.fact_event (
     total_amount NUMERIC(18, 2),
     order_status TEXT CHECK (order_status IN ('created', 'paid', 'shipped', 'cancelled')),
 
-    raw_payload JSONB NOT NULL,
 
     created_at TIMESTAMPTZ DEFAULT now()
 );
-
 
 CREATE INDEX IF NOT EXISTS idx_fact_event_event_time ON dds.fact_event(event_time);
 CREATE INDEX IF NOT EXISTS idx_fact_event_user_id ON dds.fact_event(user_id);

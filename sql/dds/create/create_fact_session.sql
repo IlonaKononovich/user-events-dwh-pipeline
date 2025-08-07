@@ -18,4 +18,3 @@ CREATE TABLE IF NOT EXISTS dds.fact_session (
 CREATE INDEX IF NOT EXISTS idx_fact_session_date_id ON dds.fact_session(date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_session_start_time ON dds.fact_session(session_start_time);
 CREATE INDEX IF NOT EXISTS idx_fact_session_is_converted ON dds.fact_session(is_converted);
-

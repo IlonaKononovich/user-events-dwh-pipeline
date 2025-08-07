@@ -19,7 +19,7 @@ SELECT DISTINCT
     r.order_items,
     COALESCE(r.total_amount, 0)::NUMERIC(18,2),
     r.order_status,
-    u.user_id,
+    u.id,
     s.id,
     d.id,
     l.id,
@@ -27,7 +27,7 @@ SELECT DISTINCT
     m.id,
     r.event_time,
     r.event_id
-FROM raw.events r
+FROM staging.events r
 JOIN dds.dim_user u ON u.user_id = r.user_id
 JOIN dds.dim_session s ON s.session_id = r.session_id
 JOIN dds.dim_device d ON d.device_type = r.device_type AND d.device_os = r.device_os

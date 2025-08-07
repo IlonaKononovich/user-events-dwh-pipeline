@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS dds.fact_order (
     total_amount NUMERIC(18, 2) NOT NULL CHECK (total_amount >= 0),
     order_status TEXT NOT NULL CHECK (order_status IN ('created', 'paid', 'shipped', 'cancelled')),
     
-    user_id UUID NOT NULL REFERENCES dds.dim_user(user_id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES dds.dim_user(id) ON DELETE CASCADE,
     session_id INT NOT NULL REFERENCES dds.dim_session(id) ON DELETE CASCADE,
     device_id INT NOT NULL REFERENCES dds.dim_device(id) ON DELETE CASCADE,
     location_id INT NOT NULL REFERENCES dds.dim_location(id) ON DELETE CASCADE,
