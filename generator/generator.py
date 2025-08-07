@@ -33,32 +33,66 @@ fake = Faker("ru_RU")
 
 # Категории товаров с диапазонами цен
 CATEGORIES = [
-    {"name": "Электроника", "products": [
-        {"name": "Смартфон", "price_range": (800, 2500), "qty_range": (1, 2)},
-        {"name": "Ноутбук", "price_range": (2000, 5000), "qty_range": (1, 1)},
-        {"name": "Наушники", "price_range": (50, 300), "qty_range": (1, 3)}
-    ]},
-    {"name": "Одежда", "products": [
-        {"name": "Футболка", "price_range": (30, 80), "qty_range": (1, 3)},
-        {"name": "Джинсы", "price_range": (100, 200), "qty_range": (1, 2)},
-        {"name": "Куртка", "price_range": (200, 600), "qty_range": (1, 1)}
-    ]},
-    {"name": "Дом и кухня", "products": [
-        {"name": "Чайник", "price_range": (50, 150), "qty_range": (1, 1)},
-        {"name": "Пылесос", "price_range": (200, 700), "qty_range": (1, 1)},
-        {"name": "Сковородка", "price_range": (20, 80), "qty_range": (1, 2)}
-    ]},
-    {"name": "Детские товары", "products": [
-        {"name": "Игрушка", "price_range": (10, 50), "qty_range": (1, 5)},
-        {"name": "Коляска", "price_range": (300, 1000), "qty_range": (1, 1)},
-        {"name": "Подгузники", "price_range": (30, 100), "qty_range": (1, 3)}
-    ]}
+    {
+        "name": "Электроника",
+        "suppliers": [
+            "БелЭлектро", "Электросила", "Минский завод электроники", "АйТиБел", "ГлобалТек"
+        ],
+        "products": [
+            {"name": "Смартфон", "price_range": (800, 2500), "qty_range": (1, 2)},
+            {"name": "Ноутбук", "price_range": (2000, 5000), "qty_range": (1, 1)},
+            {"name": "Наушники", "price_range": (50, 300), "qty_range": (1, 3)}
+        ]
+    },
+    {
+        "name": "Одежда",
+        "suppliers": [
+            "Белтекс", "Модный Дом", "Швейная фабрика Минск", "СтильПром", "ТекстильПлюс"
+        ],
+        "products": [
+            {"name": "Футболка", "price_range": (30, 80), "qty_range": (1, 3)},
+            {"name": "Джинсы", "price_range": (100, 200), "qty_range": (1, 2)},
+            {"name": "Куртка", "price_range": (200, 600), "qty_range": (1, 1)}
+        ]
+    },
+    {
+        "name": "Дом и кухня",
+        "suppliers": [
+            "БелКухня", "МебельГарант", "ТехноДом", "КомфортПлюс", "КерамикаСтиль"
+        ],
+        "products": [
+            {"name": "Чайник", "price_range": (50, 150), "qty_range": (1, 1)},
+            {"name": "Пылесос", "price_range": (200, 700), "qty_range": (1, 1)},
+            {"name": "Сковородка", "price_range": (20, 80), "qty_range": (1, 2)}
+        ]
+    },
+    {
+        "name": "Детские товары",
+        "suppliers": [
+            "ДетиБел", "ИгрушкиМир", "КоляскиПлюс", "МалышСтиль", "ПодгузникСервис"
+        ],
+        "products": [
+            {"name": "Игрушка", "price_range": (10, 50), "qty_range": (1, 5)},
+            {"name": "Коляска", "price_range": (300, 1000), "qty_range": (1, 1)},
+            {"name": "Подгузники", "price_range": (30, 100), "qty_range": (1, 3)}
+        ]
+    }
 ]
+
 
 # Маркетинговые кампании
 CAMPAIGNS = [
     "Твоя распродажа", "Большие скидки", "Черная пятница", "Супервыгода",
     "Время закупаться", "Любить себя", "День лучших покупок", "Cyber Monday"
+]
+
+# Города Беларуси (топ-30 по численности населения)
+BY_CITIES = [
+    "Минск", "Гомель", "Могилёв", "Витебск", "Гродно", "Брест", "Бобруйск",
+    "Барановичи", "Пинск", "Орша", "Мозырь", "Новополоцк", "Лида", "Солигорск",
+    "Слуцк", "Кобрин", "Светлогорск", "Жлобин", "Речица", "Волковыск", "Полоцк",
+    "Новогрудок", "Молодечно", "Жодино", "Берёза", "Сморгонь", "Горки", "Дзержинск",
+    "Осиповичи", "Калинковичи"
 ]
 
 # Пулы пользователей и сессий
@@ -163,7 +197,7 @@ def generate_event() -> dict:
         "product_id": str(uuid4()),
         "name": product["name"],
         "category": category["name"],
-        "supplier": fake.company(),
+        "supplier": choice(category["suppliers"]),
         "price": price,
         "quantity": quantity
     })
@@ -179,7 +213,7 @@ def generate_event() -> dict:
                 "product_id": str(uuid4()),
                 "name": product["name"],
                 "category": category["name"],
-                "supplier": fake.company(),
+                "supplier": choice(category["suppliers"]),
                 "price": price,
                 "quantity": quantity
             })
@@ -227,7 +261,7 @@ def generate_event() -> dict:
                 "os": choice(["Windows", "iOS", "Linux", "Android"]),
                 "location": {
                     "country": "Беларусь",
-                    "city": fake.city()
+                    "city": choice(BY_CITIES)
                 }
             }
         },

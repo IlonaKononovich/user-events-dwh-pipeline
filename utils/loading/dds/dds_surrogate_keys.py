@@ -1,7 +1,15 @@
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+"""
+Модуль dds_surrogate_keys
+
+Функции для получения surrogate key (SK) для dimension таблиц и сессий.
+Реализованы универсальные методы поиска SK по ключам и вставки новых записей при необходимости.
+"""
+
+import logging
 from typing import Optional, Union, Dict, Any, List, Tuple
 from uuid import UUID
-import logging
+
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # Конфигурация ключевых колонок по таблицам DIM
 DIM_KEYS: Dict[str, List[str]] = {
@@ -13,13 +21,14 @@ DIM_KEYS: Dict[str, List[str]] = {
     'dim_user': ['user_id'],
 }
 
+
 def build_where_clause(columns: List[str], values: Dict[str, Any]) -> Tuple[str, List[Any]]:
     """
     Построить WHERE-условие с поддержкой сравнения NULL значений.
 
-    :param columns: Список колонок.
-    :param values: Словарь значений.
-    :return: Кортеж: SQL WHERE-условие и список параметров.
+    :param columns: Список колонок для условия.
+    :param values: Словарь значений для сравнения.
+    :return: Кортеж из SQL-условия (строка) и списка параметров.
     """
     clauses = []
     params = []
@@ -29,6 +38,7 @@ def build_where_clause(columns: List[str], values: Dict[str, Any]) -> Tuple[str,
         params.extend([val, val])
     return " AND ".join(clauses), params
 
+
 def insert_dim_record(
     table: str,
     raw_values: Dict[str, Any],
@@ -37,10 +47,10 @@ def insert_dim_record(
     """
     Вставить новую запись в dimension таблицу и вернуть surrogate key.
 
-    :param table: Название dimension таблицы.
-    :param raw_values: Данные для вставки.
-    :param pg: PostgresHook для подключения.
-    :return: surrogate key (id) или None.
+    :param table: Имя dimension таблицы.
+    :param raw_values: Данные для вставки (колонки и значения).
+    :param pg: Подключение PostgresHook.
+    :return: surrogate key (id) или None при ошибке.
     """
     columns = list(raw_values.keys())
     values = [raw_values[col] for col in columns]
@@ -61,6 +71,7 @@ def insert_dim_record(
         logging.error(f"Ошибка при вставке в {table}: {e}")
         return None
 
+
 def get_surrogate_key_for_dim(
     table: str,
     raw_values: Union[str, UUID, Dict[str, Any]],
@@ -68,14 +79,15 @@ def get_surrogate_key_for_dim(
     insert_if_not_found: bool = True
 ) -> Optional[int]:
     """
-    Универсальная функция получения surrogate key для всех dimension таблиц.
-    Если запись не найдена, может вставить новую.
+    Получить surrogate key для dimension таблицы.
+    Если запись не найдена, при insert_if_not_found=True вставляет новую.
 
-    :param table: Название таблицы.
-    :param raw_values: Значения для поиска или вставки.
-    :param pg: PostgresHook.
-    :param insert_if_not_found: Вставлять новую запись, если не найдена.
-    :return: surrogate key или None.
+    :param table: Имя dimension таблицы.
+    :param raw_values: Значения для поиска (словарь) или одиночное значение (для single-key таблиц).
+    :param pg: Подключение PostgresHook.
+    :param insert_if_not_found: Вставлять новую запись при отсутствии.
+    :return: surrogate key (id) или None.
+    :raises ValueError: если table не поддерживается или raw_values некорректны.
     """
     if raw_values is None:
         logging.debug(f"get_surrogate_key: raw_values=None для таблицы {table}, возвращаем None")
@@ -103,7 +115,6 @@ def get_surrogate_key_for_dim(
             logging.debug(f"get_surrogate_key: найден id={result[0]} для таблицы {table} и ключей {raw_values}")
             return result[0]
         elif insert_if_not_found:
-            # Вставляем новую запись, если не нашли
             return insert_dim_record(table, raw_values, pg)
         else:
             logging.debug(f"get_surrogate_key: запись не найдена и вставка отключена для {table} и {raw_values}")
@@ -111,6 +122,7 @@ def get_surrogate_key_for_dim(
     except Exception as e:
         logging.error(f"Ошибка в get_surrogate_key для таблицы {table}, ключи {raw_values}: {e}")
         return None
+
 
 def insert_session_record(
     raw_values: Dict[str, Any],
@@ -120,8 +132,8 @@ def insert_session_record(
     Вставить новую запись в dim_session и вернуть surrogate key.
 
     :param raw_values: Данные для вставки.
-    :param pg: PostgresHook.
-    :return: surrogate key или None.
+    :param pg: Подключение PostgresHook.
+    :return: surrogate key (id) или None при ошибке.
     """
     columns = list(raw_values.keys())
     values = [raw_values[col] for col in columns]
@@ -142,6 +154,7 @@ def insert_session_record(
         logging.error(f"Ошибка при вставке в dim_session: {e}")
         return None
 
+
 def get_surrogate_key_for_session(
     raw_values: Dict[str, Any],
     pg: PostgresHook,
@@ -149,12 +162,13 @@ def get_surrogate_key_for_session(
 ) -> Optional[int]:
     """
     Получить surrogate key для dim_session по session_id.
-    Если не найден, может вставить новую запись.
+    Если не найден, при insert_if_not_found=True вставляет новую запись.
 
     :param raw_values: Данные с ключом 'session_id' и другими полями.
-    :param pg: PostgresHook.
+    :param pg: Подключение PostgresHook.
     :param insert_if_not_found: Вставлять новую запись при отсутствии.
-    :return: surrogate key или None.
+    :return: surrogate key (id) или None.
+    :raises ValueError: если в raw_values отсутствует 'session_id'.
     """
     if 'session_id' not in raw_values:
         raise ValueError("Отсутствует ключ 'session_id' в raw_values")
@@ -177,3 +191,7 @@ def get_surrogate_key_for_session(
     except Exception as e:
         logging.error(f"Ошибка при получении surrogate key для session_id {raw_values.get('session_id')}: {e}")
         return None
+
+
+if __name__ == "__main__":
+    pass

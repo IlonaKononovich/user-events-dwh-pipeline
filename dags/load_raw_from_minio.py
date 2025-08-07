@@ -10,9 +10,9 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from utils.telegram_logger import notify_telegram
 from utils.sql_db.schema_and_tables_init import init_raw_layer, mark_file_as_processed
-from utils.loading.raw_loader import get_new_files
+from utils.loading.raw.raw_loader import get_new_files
 from utils.constants import RAW_EVENT_COLUMNS, RAW_EVENT_INVALID_COLUMNS
-from utils.loading.raw_loader import parse_file, insert_batch
+from utils.loading.raw.raw_loader import parse_file, insert_batch
 
 
 # Аргументы DAG по умолчанию

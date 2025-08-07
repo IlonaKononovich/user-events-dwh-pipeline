@@ -1,16 +1,20 @@
 import time
 import logging
 from datetime import datetime, timedelta
+from typing import Dict, List, Tuple
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from utils.telegram_logger import notify_telegram
-from utils.sql_db.schema_and_tables_init import init_dds_layer
-from utils.loading.dds_loader import load_staging_events_batch, get_insert_dim_sql, get_insert_fact_sql
-from utils.sql_db.sql_paths import SQL_MARK_PROCESSED_STAGING
 from utils.sql_db.sql_utils import read_sql_file
+from utils.sql_db.schema_and_tables_init import init_dds_layer
+from utils.loading.dds.dds_sql_loader import get_insert_dim_sql, get_insert_fact_sql
+from utils.loading.dds.dds_batch_processing import process_batch
+from utils.loading.dds.dds_sql_loader import fetch_new_staging_events
+from utils.sql_db.sql_paths import SQL_MARK_PROCESSED_STAGING
+from utils.constants import BATCH_SIZE_DDS
 
 
 # Аргументы DAG по умолчанию
@@ -29,6 +33,41 @@ def init_dds_layer_wrapper() -> None:
     """
     pg = PostgresHook(postgres_conn_id='Postgres')
     init_dds_layer(pg)
+
+
+def load_staging_events_batch(
+    pg: PostgresHook,
+    insert_dim_sql: Dict[str, str],
+    insert_fact_sql: Dict[str, str],
+    mark_processed_sql: str,
+) -> Tuple[int, List[str]]:
+    """
+    Основная функция загрузки батчей событий из staging.
+
+    Загружает новые события, обрабатывает их по частям (батчам), 
+    вызывает функции обработки DIM и FACT таблиц и отмечает успешно обработанные записи.
+
+    :param pg: PostgresHook для подключения к базе.
+    :param insert_dim_sql: Словарь с SQL запросами для вставки в dimension таблицы.
+    :param insert_fact_sql: Словарь с SQL запросами для вставки в факт таблицы.
+    :param mark_processed_sql: SQL запрос для пометки событий как обработанных.
+    :return: Кортеж (кол-во успешно обработанных событий, список event_id с ошибками).
+    """
+    rows, columns = fetch_new_staging_events(pg)
+    if not rows:
+        logging.info("Нет новых событий для обработки.")
+        return 0, []
+
+    total_success = 0
+    total_errors: List[str] = []
+    for i in range(0, len(rows), BATCH_SIZE_DDS):
+        batch = rows[i : i + BATCH_SIZE_DDS]
+        success, errors = process_batch(batch, columns, pg, insert_dim_sql, insert_fact_sql, mark_processed_sql)
+        total_success += success
+        total_errors.extend(errors)
+        logging.info(f"Итоги обработки батча: успешно вставлено {success} событий, ошибок: {len(errors)}")
+
+    return total_success, total_errors
 
 
 def load_staging_to_dds(batch_size: int = 50) -> None:

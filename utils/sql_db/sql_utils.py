@@ -10,7 +10,6 @@ from typing import Optional, Tuple, List
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 
-
 def read_sql_file(path: str) -> str:
     """
     Читает SQL-скрипт из файла и возвращает его содержимое в виде строки.
