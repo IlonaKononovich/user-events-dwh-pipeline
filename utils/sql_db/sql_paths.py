@@ -1,7 +1,7 @@
 """
 Конфигурация путей к SQL-скриптам проекта.
 
-Здесь задаются абсолютные пути к файлам с SQL для RAW и DDS слоёв,
+Здесь задаются абсолютные пути к файлам с SQL,
 а также подгружается содержимое некоторых SQL-файлов для удобства использования.
 """
 
@@ -66,3 +66,49 @@ BASE_SQL_DDS_INSERT = os.path.join(BASE_DIR, 'sql', 'dds', 'insert')
 # DDS schema
 SQL_CREATE_DDS_SCHEMA = os.path.join(BASE_SQL_DDS_CREATE, 'create_dds_schema.sql')
 
+
+# ClickHouse marts
+# Пути к marts SQL скриптам
+BASE_SQL_CLICKHOUSE_CREATE = os.path.join(BASE_DIR, 'sql', 'marts', 'create')
+BASE_SQL_CLICKHOUSE_INSERT = os.path.join(BASE_DIR, 'sql', 'marts', 'insert')
+
+# marts schema
+SQL_CREATE_DB = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_CREATE, 'create_marts_schema.sql'))
+
+# marts таблицы создания
+SQL_CREATE_DAILY_SUMMARY = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_CREATE, 'create_daily_summary.sql'))
+SQL_CREATE_PRODUCT_STATS = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_CREATE, 'create_product_stats.sql'))
+SQL_CREATE_USER_BEHAVIOR = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_CREATE, 'create_user_behavior.sql'))
+
+CREATE_MARTS_TABLES_SQL = [
+    SQL_CREATE_DB,
+    SQL_CREATE_DAILY_SUMMARY,
+    SQL_CREATE_PRODUCT_STATS,
+    SQL_CREATE_USER_BEHAVIOR
+]
+
+# marts источники
+INSERT_DAILY_SUMMARY_SOURCE = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_daily_summary_source.sql'))
+INSERT_PRODUCT_STATS_SOURCE = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_product_stats_source.sql'))
+INSERT_USER_BEHAVIOR_SOURCE = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_user_behavior_source.sql'))
+
+# marts вставки
+INSERT_DAILY_SUMMARY_INSERT = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_daily_summary.sql'))
+INSERT_PRODUCT_STATS_INSERT = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_product_stats.sql'))
+INSERT_USER_BEHAVIOR_INSERT = read_sql_file(os.path.join(BASE_SQL_CLICKHOUSE_INSERT, 'insert_user_behavior.sql'))
+
+
+INSERT_DAILY_SUMMARY_SQL = {
+    "source": INSERT_DAILY_SUMMARY_SOURCE,
+    "insert": INSERT_DAILY_SUMMARY_INSERT,
+}
+
+INSERT_PRODUCT_STATS_SQL = {
+    "source": INSERT_PRODUCT_STATS_SOURCE,
+    "insert": INSERT_PRODUCT_STATS_INSERT,
+}
+
+INSERT_USER_BEHAVIOR_SQL = {
+    "source": INSERT_USER_BEHAVIOR_SOURCE,
+    "insert": INSERT_USER_BEHAVIOR_INSERT,
+}

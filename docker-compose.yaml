@@ -350,8 +350,24 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  metabase:
+    image: metabase/metabase:v0.55.10
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase-data:/metabase-data
+    environment:
+      - MB_DB_FILE=${MB_DB_FILE}
+    restart: always
+    depends_on:
+      - clickhouse
+      - postgres
+      - redis
+
 volumes:
   postgres-db-volume:
   clickhouse-data-volume:
   clickhouse-log-volume:
   minio_data:
+  metabase-data:
