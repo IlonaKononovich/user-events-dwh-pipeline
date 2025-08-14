@@ -112,6 +112,8 @@ client = Minio(
     secure=MINIO_ENDPOINT.startswith("https")
 )
 
+DAYS_BACK = 90
+
 def ensure_bucket_exists() -> None:
     """
     Проверяет существование бакета и создает его при необходимости.
@@ -163,9 +165,12 @@ def generate_event() -> dict:
     Поддерживает page_view / add_to_cart / purchase.
     :return -> dict (JSON-совместимый словарь события)
     """
-    event_time = datetime.now(timezone.utc)
+    event_time = datetime.now(timezone.utc) - timedelta(days=randint(0, DAYS_BACK),
+                                                    hours=randint(0,23),
+                                                    minutes=randint(0,59),
+                                                    seconds=randint(0,59))
+    event_date = event_time.date().isoformat()
     event_time_str = event_time.isoformat()
-    event_date = event_time.date().isoformat()  # для dim_date
 
     # Тип события
     rnd = random()
@@ -294,10 +299,10 @@ def main() -> None:
     while True:
         try:
             event = generate_event()
-            now = datetime.now(timezone.utc)
-            timestamp = now.strftime("%Y%m%d_%H%M%S_%f")
-            date_prefix = now.strftime("%Y-%m-%d")
-            filename = f"{date_prefix}/event_{timestamp}.json"
+            event_time = datetime.fromisoformat(event["event_time"])
+            timestamp = event_time.strftime("%Y%m%d_%H%M%S")
+            random_suffix = f"{randint(100000, 999999)}"         # 6-значное случайное число
+            filename = f"{event['event_date']}/event_{timestamp}_{random_suffix}.json"
 
             json_bytes = json.dumps(event, indent=2, ensure_ascii=False).encode("utf-8")
             client.put_object(
@@ -315,7 +320,7 @@ def main() -> None:
             logging.error(error_message)
             notify_telegram(error_message)
 
-        time.sleep(60)
+        time.sleep(2)
 
 if __name__ == "__main__":
     main()
