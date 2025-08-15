@@ -88,6 +88,7 @@
 
 ## Структура репозитория
 
+```text
 project/
 │
 ├── generator/              # Скрипты и контейнер для генерации событий, отправки их в Minio
@@ -109,9 +110,11 @@ project/
 ├── env_example.txt         # шаблон файла с переменными окружения для проекта
 ├── LICENSE                 # лицензия проекта
 └── README.md               # Документация с описанием проекта, структуры и инструкциями по запуску
+```
 
 
-Запуск проекта
+## Запуск проекта
+
 1) Клонировать репозиторий:
    git clone https://github.com/IlonaKononovich/user-events-dwh-pipeline.git
    cd user-events-dwh-pipeline
