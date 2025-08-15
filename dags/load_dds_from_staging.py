@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from utils.telegram_logger import notify_telegram
 from utils.sql_db.sql_utils import read_sql_file
@@ -136,6 +137,7 @@ with DAG(
     - Валидирует данные через Pydantic
     - Записывает в DIM и FACT таблицы
     - Логирует и отправляет уведомления в Telegram
+    - После успешной обработки триггерит DAG 'load_clickhouse_from_dds' для переноса данных в marts слой
     """
     init_dds_layer_task = PythonOperator(
         task_id='init_dds_layer',
@@ -147,4 +149,10 @@ with DAG(
         python_callable=load_staging_to_dds,
     )
 
-    init_dds_layer_task >> load_staging_to_dds_task
+    trigger_clickhouse_dag = TriggerDagRunOperator(
+    task_id='trigger_clickhouse_dag',
+    trigger_dag_id='load_clickhouse_from_dds',
+    wait_for_completion=False,              
+    )
+
+    init_dds_layer_task >> load_staging_to_dds_task >> trigger_clickhouse_dag

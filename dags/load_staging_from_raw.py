@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from utils.telegram_logger import notify_telegram
 from utils.sql_db.schema_and_tables_init import init_staging_layer
@@ -91,6 +92,7 @@ with DAG(
     - Инициализирует схему и таблицы STAGING
     - Переносит новые события батчами
     - Логирует процесс и отправляет уведомления в Telegram
+    - После успешной обработки триггерит DAG 'load_dds_from_staging' для переноса данных в DDS слой
     """
     init_staging_layer_task = PythonOperator(
         task_id='init_staging_layer',
@@ -102,4 +104,10 @@ with DAG(
         python_callable=load_staging_events,
     )
 
-    init_staging_layer_task >> load_staging_task
+    trigger_dds_dag = TriggerDagRunOperator(
+    task_id='trigger_dds_dag',
+    trigger_dag_id='load_dds_from_staging',
+    wait_for_completion=False,              
+    )
+
+    init_staging_layer_task >> load_staging_task >> trigger_dds_dag

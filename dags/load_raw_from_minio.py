@@ -7,6 +7,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 from utils.telegram_logger import notify_telegram
 from utils.sql_db.schema_and_tables_init import init_raw_layer, mark_file_as_processed
@@ -120,6 +121,7 @@ with DAG(
     - Валидирует через Pydantic
     - Записывает в таблицу raw.events
     - Логирует обработанные файлы
+    - После успешной обработки триггерит DAG 'load_staging_from_raw' для переноса данных в STAGING слой
     """
     init_raw_layer_task = PythonOperator(
         task_id='init_raw_layer',
@@ -131,4 +133,10 @@ with DAG(
         python_callable=load_from_minio_to_postgres,
     )
 
-    init_raw_layer_task >> load_and_validate_data_task
+    trigger_staging_dag = TriggerDagRunOperator(
+    task_id='trigger_staging_dag',
+    trigger_dag_id='load_staging_from_raw',
+    wait_for_completion=False,              
+    )
+
+    init_raw_layer_task >> load_and_validate_data_task >> trigger_staging_dag

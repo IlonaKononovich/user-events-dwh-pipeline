@@ -1,0 +1,27 @@
+# PostgreSQL
+POSTGRES_USER=your_postgres_username              # ваш логин PostgreSQL
+POSTGRES_PASSWORD=your_postgres_password          # ваш пароль PostgreSQL
+POSTGRES_DB=your_database_name                    # имя базы данных
+
+# ClickHouse
+CLICKHOUSE_USER=your_clickhouse_username          # ваш логин ClickHouse
+CLICKHOUSE_PASSWORD=your_clickhouse_password      # ваш пароль ClickHouse
+CLICKHOUSE_DB=your_clickhouse_db                  # имя базы ClickHouse
+
+# MinIO
+MINIO_ENDPOINT=http://localhost:9000              # адрес MinIO
+MINIO_ROOT_USER=your_minio_user                   # ваш логин MinIO
+MINIO_ROOT_PASSWORD=your_minio_password           # ваш пароль MinIO
+MINIO_BUCKET=your_bucket_name                     # имя бакета для хранения файлов
+
+# Airflow
+AIRFLOW_UID=50000                                 # UID пользователя Airflow
+_AIRFLOW_WWW_USER_USERNAME=your_airflow_user      # логин для веб-интерфейса Airflow
+_AIRFLOW_WWW_USER_PASSWORD=your_airflow_password  # пароль для веб-интерфейса Airflow
+
+# Telegram Logger
+TELEGRAM_BOT_TOKEN=your_bot_token                 # токен Telegram-бота
+TELEGRAM_CHAT_ID=your_chat_id                     # ID чата для уведомлений
+
+# Metabase
+MB_DB_FILE=/path/to/metabase.db                   # путь к файлу базы Metabase (локально)

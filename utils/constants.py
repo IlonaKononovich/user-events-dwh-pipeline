@@ -82,4 +82,4 @@ FACT_MODELS = {
     "fact_session": FactSession,
 }
 
-BATCH_SIZE_DDS = 50
+BATCH_SIZE_DDS = 1000
