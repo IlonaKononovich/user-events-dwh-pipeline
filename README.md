@@ -106,16 +106,17 @@ project/
 │   └── telegram_logger.py  # Модуль для отправки уведомлений в Telegram через Bot API
 │ 
 ├── .gitignore              # файлы и папки, исключённые из контроля версий
+├── dashboard_example.pdf  # Пример дашборда
 ├── docker-compose.yaml     # Конфигурация сервисов проекта и их взаимодействия в Docker
 ├── env_example.txt         # шаблон файла с переменными окружения для проекта
 ├── LICENSE                 # лицензия проекта
 └── README.md               # Документация с описанием проекта, структуры и инструкциями по запуску
 ```
-
+dashboard_example.pdf
 
 ## Запуск проекта
 
-### Предусловия
+1. Предусловия
 
 - Docker с поддержкой Docker Compose установлен.
 - Перед запуском убедитесь, что нужные порты свободны:
@@ -125,30 +126,31 @@ project/
    - ClickHouse: 8123 (HTTP), 9002 (Native)  
    - PostgreSQL: 5432  
 
-### Инициализация окружения:
+2. Инициализация окружения:
 
 1) Клонировать репозиторий
    git clone https://github.com/IlonaKononovich/user-events-dwh-pipeline.git
    cd user-events-dwh-pipeline
 2) Создать файл .env в корне проекта по шаблону env_example.txt и заполнить своими значениями
 
-###  Поднять инфраструктуру
+
+3.  Поднять инфраструктуру
 
    docker-compose up -d
    Проверить состояние:
    docker compose ps
 
-### Доступ к сервисам
+4.  Доступ к сервисам
 
-1. **Airflow (Web)**
+1) **Airflow (Web)**
    - URL: http://localhost:8080
    - Учётные данные: `_AIRFLOW_WWW_USER_USERNAME` / `_AIRFLOW_WWW_USER_PASSWORD` (из `.env`)
 
-2. **MinIO UI**
+2) **MinIO UI**
    - URL: http://localhost:9001
    - Учётные данные: `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` (из `.env`)
 
-3. **Metabase**
+3) **Metabase**
    - URL: http://localhost:3000
    - Учётные данные: создаются при первом входе
 
@@ -158,18 +160,19 @@ project/
 - PostgreSQL и ClickHouse настраиваются через значения из `.env` и подключаются через СУБД.
 - Все веб-интерфейсы доступны по указанным URL, а авторизация выполняется через переменные окружения, где это предусмотрено.
 
-## Airflow (Connections)
+5. Airflow (Connections)
 
 Admin → Connections создайте/проверьте три соединения (имена должны совпадать с используемыми в DAG’ах):
 
-1. MinIO (S3 совместимое)
+1) MinIO (S3 совместимое)
 
-Conn Id: MinIO
-Conn Type: Amazon Web Servies
-Login: ${MINIO_ROOT_USER}
-Password: ${MINIO_ROOT_PASSWORD}
-Extra:
+- Conn Id: MinIO
+- Conn Type: Amazon Web Servies
+- Login: ${MINIO_ROOT_USER}
+- Password: ${MINIO_ROOT_PASSWORD}
+- Extra:
 
+```json
 {
   "aws_access_key_id": "${MINIO_ROOT_USER}",
   "aws_secret_access_key": "${MINIO_ROOT_PASSWORD}",
@@ -177,46 +180,47 @@ Extra:
   "endpoint_url": "${MINIO_ENDPOINT}",
   "verify": false
 } 
+```
 
-2. PostgreSQL (DWH/raw/dds)
+2) PostgreSQL (DWH/raw/dds)
 
-Conn Id: Postgres
-Conn Type: Postgres
-Host: postgres
-Database: ${POSTGRES_DB}
-Login: ${POSTGRES_USER}
-Password: ${POSTGRES_PASSWORD}
-Port: 5432
-
-
-3. ClickHouse (витрины/аналитика)
-
-Conn Id: ClickHouse
-Conn Type: HTTP
-Host: clickhouse
-Schema: ${CLICKHOUSE_DB}
-Login: ${CLICKHOUSE_USER}
-Password: ${CLICKHOUSE_PASSWORD}
-Port: 9000
+- Conn Id: Postgres
+- Conn Type: Postgres
+- Host: postgres
+- Database: ${POSTGRES_DB}
+- Login: ${POSTGRES_USER}
+- Password: ${POSTGRES_PASSWORD}
+- Port: 5432
 
 
-## Проверка MinIO 
+3) ClickHouse (витрины/аналитика)
+
+- Conn Id: ClickHouse
+- Conn Type: HTTP
+- Host: clickhouse
+- Schema: ${CLICKHOUSE_DB}
+- Login: ${CLICKHOUSE_USER}
+- Password: ${CLICKHOUSE_PASSWORD}
+- Port: 9000
+
+
+6. Проверка MinIO 
 
 В консоли или UI-интерфейсе проверьте, что в MINIO_BUCKET появляются JSON-файлы событий.
 
-## Airflow (запуск DAG)
+7. Airflow (запуск DAG)
 
-1. Открыть Airflow (http://localhost:8080) 
-2. Запустите вручную только DAG load_raw_from_minio.
-3. Остальные DAG’и стартуют каскадом по зависимостям/триггерам.
+- Открыть Airflow (http://localhost:8080) 
+- Запустите вручную только DAG load_raw_from_minio.
+- Остальные DAG’и стартуют каскадом по зависимостям/триггерам.
 
-## Проверка СУБД
+8. Проверка СУБД
 
 Проверьте данные:
    - PostgreSQL: проверить данные в схемах raw, staging, dds.
    - ClickHouse: проверить данные в витринах marts.
 
-##  Дашборд
+9. Дашборд
 
 В Metabase (http://localhost:3000) нужно самостоятельно построить дашборд, используя загруженные данные. 
 
