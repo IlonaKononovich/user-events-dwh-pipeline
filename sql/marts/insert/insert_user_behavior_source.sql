@@ -16,8 +16,7 @@ SELECT
         2
     ) AS avg_pages_per_session,
     COUNT(fe.event_id)::BIGINT AS events_count,
-    COALESCE(au7.cnt, 0)::BIGINT AS active_users_7d,
-    EXTRACT(EPOCH FROM now())::BIGINT AS version
+    COALESCE(au7.cnt, 0)::BIGINT AS active_users_7d
 FROM dds.dim_user du
 LEFT JOIN dds.dim_session ds ON ds.user_id = du.id
 LEFT JOIN dds.fact_session fs ON fs.session_dim_id = ds.id

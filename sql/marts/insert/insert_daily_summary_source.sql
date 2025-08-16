@@ -45,8 +45,7 @@ SELECT
     COALESCE(o.unique_users, 0) AS unique_users,
     COALESCE(o.avg_check, 0) AS avg_check,
     ROUND((COALESCE(swo.sessions_with_orders, 0)::numeric / NULLIF(s.total_sessions, 0)), 4) AS conversion_rate,
-    COALESCE(nu.new_users, 0) AS new_users,
-    EXTRACT(EPOCH FROM now())::bigint AS version
+    COALESCE(nu.new_users, 0) AS new_users
 FROM date_base db
 LEFT JOIN orders o ON o.event_date = db.event_date
 LEFT JOIN sessions s ON s.event_date = db.event_date

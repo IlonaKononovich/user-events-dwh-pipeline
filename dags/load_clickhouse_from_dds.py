@@ -14,33 +14,6 @@ default_args = {
     "retry_delay": timedelta(minutes=5),
 }
 
-def load_clickhouse_marts_wrapper() -> None:
-    """
-    Обёртка для запуска функции загрузки marts в ClickHouse с логированием и уведомлениями.
-
-    Выполняет:
-    - логирование начала и конца работы DAG,
-    - отправку уведомлений в Telegram о старте и завершении,
-    - перехват и логирование исключений с уведомлением в Telegram,
-    - проброс исключения для корректной обработки Airflow.
-
-    :return: None
-    :raises Exception: Пробрасывает исключения из функции load_clickhouse_marts для обработки Airflow.
-    """
-    try:
-        logging.info("DAG load_clickhouse_from_dds запущен")
-        notify_telegram("DAG load_clickhouse_from_dds запущен")
-
-        load_clickhouse_marts()
-
-        logging.info("DAG load_clickhouse_from_dds завершён")
-        notify_telegram("[v] DAG load_clickhouse_from_dds завершён")
-
-    except Exception as e:
-        logging.error(f"[x] Ошибка в DAG load_clickhouse_from_dds: {e}")
-        notify_telegram(f"[x] Ошибка в DAG load_clickhouse_from_dds: {e}")
-        raise
-
 
 with DAG(
     dag_id="load_clickhouse_from_dds",
@@ -62,7 +35,7 @@ with DAG(
 
     load_ch_task = PythonOperator(
         task_id="load_clickhouse_marts",
-        python_callable=load_clickhouse_marts_wrapper,
+        python_callable=load_clickhouse_marts,
     )
 
     load_ch_task

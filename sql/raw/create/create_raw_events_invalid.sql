@@ -7,3 +7,13 @@ CREATE TABLE IF NOT EXISTS raw.events_invalid (
     raw_payload JSONB NOT NULL,          
     loaded_at TIMESTAMP DEFAULT now()    
 );
+
+COMMENT ON TABLE raw.events_invalid IS 'Хранилище невалидных событий, не прошедших валидацию';
+
+COMMENT ON COLUMN raw.events_invalid.id IS 'Уникальный идентификатор записи (PK)';
+COMMENT ON COLUMN raw.events_invalid.filename IS 'Имя файла-источника с сырыми данными';
+COMMENT ON COLUMN raw.events_invalid.event_id IS 'UUID события (может отсутствовать, если не считался)';
+COMMENT ON COLUMN raw.events_invalid.event_time IS 'Время события (как было в исходном JSON)';
+COMMENT ON COLUMN raw.events_invalid.error_message IS 'Причина, по которой событие признано невалидным';
+COMMENT ON COLUMN raw.events_invalid.raw_payload IS 'Полный JSON исходного события';
+COMMENT ON COLUMN raw.events_invalid.loaded_at IS 'Время загрузки записи в таблицу';
