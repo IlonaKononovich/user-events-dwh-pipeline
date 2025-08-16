@@ -164,39 +164,39 @@ dashboard_example.pdf
 Admin → Connections создайте/проверьте три соединения (имена должны совпадать с используемыми в DAG’ах):
 
 - MinIO (S3 совместимое)
-      - Conn Id: MinIO
-      - Conn Type: Amazon Web Servies
-      - Login: ${MINIO_ROOT_USER}
-      - Password: ${MINIO_ROOT_PASSWORD}
-      - Extra:
-            ```json
-            {
-            "aws_access_key_id": "${MINIO_ROOT_USER}",
-            "aws_secret_access_key": "${MINIO_ROOT_PASSWORD}",
-            "region_name": "us-east-1",
-            "endpoint_url": "${MINIO_ENDPOINT}",
-            "verify": false
-            } 
-            ```
+   - Conn Id: MinIO
+   - Conn Type: Amazon Web Servies
+   - Login: ${MINIO_ROOT_USER}
+   - Password: ${MINIO_ROOT_PASSWORD}
+   - Extra:
+      ```json
+      {
+      "aws_access_key_id": "${MINIO_ROOT_USER}",
+      "aws_secret_access_key": "${MINIO_ROOT_PASSWORD}",
+      "region_name": "us-east-1",
+      "endpoint_url": "${MINIO_ENDPOINT}",
+      "verify": false
+      } 
+      ```
 
 - PostgreSQL (DWH/raw/dds)
-      - Conn Id: Postgres
-      - Conn Type: Postgres
-      - Host: postgres
-      - Database: ${POSTGRES_DB}
-      - Login: ${POSTGRES_USER}
-      - Password: ${POSTGRES_PASSWORD}
-      - Port: 5432
+   - Conn Id: Postgres
+   - Conn Type: Postgres
+   - Host: postgres
+   - Database: ${POSTGRES_DB}
+   - Login: ${POSTGRES_USER}
+   - Password: ${POSTGRES_PASSWORD}
+   - Port: 5432
 
 
 - ClickHouse (витрины/аналитика)
-      - Conn Id: ClickHouse
-      - Conn Type: HTTP
-      - Host: clickhouse
-      - Schema: ${CLICKHOUSE_DB}
-      - Login: ${CLICKHOUSE_USER}
-      - Password: ${CLICKHOUSE_PASSWORD}
-      - Port: 9000
+   - Conn Id: ClickHouse
+   - Conn Type: HTTP
+   - Host: clickhouse
+   - Schema: ${CLICKHOUSE_DB}
+   - Login: ${CLICKHOUSE_USER}
+   - Password: ${CLICKHOUSE_PASSWORD}
+   - Port: 9000
 
 
 #### 6. Проверка MinIO 
