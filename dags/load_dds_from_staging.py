@@ -95,20 +95,31 @@ def load_staging_to_dds(batch_size: int = 50) -> None:
     mark_processed_sql = read_sql_file(SQL_MARK_PROCESSED_STAGING)
 
     try:
-        success_count, error_ids = load_staging_events_batch(
-            pg,
-            insert_dim_sql,
-            insert_fact_sql,
-            mark_processed_sql
-        )
+        total_processed = 0
+        total_errors: List[str] = []
+
+        while True:
+            success_count, error_ids = load_staging_events_batch(
+                pg,
+                insert_dim_sql,
+                insert_fact_sql,
+                mark_processed_sql
+            )
+
+            if success_count == 0:
+                break  # больше новых событий нет
+
+            total_processed += success_count
+            total_errors.extend(error_ids)
+            logging.info(f"Промежуточный итог: обработано {total_processed} событий")
 
         # Отправка уведомлений
-        notify_telegram(f"[DDS] Успешно обработано событий: {success_count}")
-        logging.info(f"[DDS] Успешно обработано событий: {success_count}")
+        notify_telegram(f"[DDS] Всего успешно обработано событий: {total_processed}")
+        logging.info(f"[DDS] Всего успешно обработано событий: {total_processed}")
 
-        if error_ids:
-            notify_telegram(f"[DDS] Ошибки при обработке {len(error_ids)} событий")
-            logging.warning(f"[DDS] Ошибки при обработке событий: {', '.join(error_ids[:10])} ...")
+        if total_errors:
+            notify_telegram(f"[DDS] Ошибки при обработке {len(total_errors)} событий")
+            logging.warning(f"[DDS] Ошибки при обработке событий: {', '.join(total_errors[:10])} ...")
 
     except Exception as e:
         error_message = f"[DDS] Критическая ошибка загрузки: {e}"

@@ -31,7 +31,7 @@ def init_staging_layer_wrapper() -> None:
     init_staging_layer(pg)
 
 
-def load_staging_events(batch_limit: int = 5000) -> None:
+def load_staging_events(batch_limit: int = 10000) -> None:
     """
     Загружает данные из RAW слоя в STAGING слой:
     - Читает новые события из raw.events

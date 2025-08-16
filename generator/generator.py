@@ -320,7 +320,7 @@ def main() -> None:
             logging.error(error_message)
             notify_telegram(error_message)
 
-        time.sleep(2)
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()

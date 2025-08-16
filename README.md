@@ -115,14 +115,113 @@ project/
 
 ## Запуск проекта
 
-1) Клонировать репозиторий:
+### Предусловия
+
+- Docker с поддержкой Docker Compose установлен.
+- Перед запуском убедитесь, что нужные порты свободны:
+   - Airflow (webserver): 8080  
+   - Metabase: 3000  
+   - MinIO: 9000 (API), 9001 (консоль)  
+   - ClickHouse: 8123 (HTTP), 9002 (Native)  
+   - PostgreSQL: 5432  
+
+### Инициализация окружения:
+
+1) Клонировать репозиторий
    git clone https://github.com/IlonaKononovich/user-events-dwh-pipeline.git
    cd user-events-dwh-pipeline
 2) Создать файл .env в корне проекта по шаблону env_example.txt и заполнить своими значениями
-3) Запустить инфраструктуру:
+
+###  Поднять инфраструктуру
+
    docker-compose up -d
-4) Подождать несколько минут, чтобы генератор событий создал первые данные в MinIO
-5) Открыть Airflow (http://localhost:8080) и запустить DAG загрузки данных
-6) Проверить данные:
-   - в ClickHouse — факт- и DIM-таблицы DDS
-   - в Metabase (http://localhost:3000) — готовый дашборд
+   Проверить состояние:
+   docker compose ps
+
+### Доступ к сервисам
+
+1. **Airflow (Web)**
+   - URL: http://localhost:8080
+   - Учётные данные: `_AIRFLOW_WWW_USER_USERNAME` / `_AIRFLOW_WWW_USER_PASSWORD` (из `.env`)
+
+2. **MinIO UI**
+   - URL: http://localhost:9001
+   - Учётные данные: `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` (из `.env`)
+
+3. **Metabase**
+   - URL: http://localhost:3000
+   - Учётные данные: создаются при первом входе
+
+**Примечания:**
+
+- Генератор событий запускается автоматически (сервис `generator`) и пишет файлы в `MINIO_BUCKET`.
+- PostgreSQL и ClickHouse настраиваются через значения из `.env` и подключаются через СУБД.
+- Все веб-интерфейсы доступны по указанным URL, а авторизация выполняется через переменные окружения, где это предусмотрено.
+
+## Airflow (Connections)
+
+Admin → Connections создайте/проверьте три соединения (имена должны совпадать с используемыми в DAG’ах):
+
+1. MinIO (S3 совместимое)
+
+Conn Id: MinIO
+Conn Type: Amazon Web Servies
+Login: ${MINIO_ROOT_USER}
+Password: ${MINIO_ROOT_PASSWORD}
+Extra:
+
+{
+  "aws_access_key_id": "${MINIO_ROOT_USER}",
+  "aws_secret_access_key": "${MINIO_ROOT_PASSWORD}",
+  "region_name": "us-east-1",
+  "endpoint_url": "${MINIO_ENDPOINT}",
+  "verify": false
+} 
+
+2. PostgreSQL (DWH/raw/dds)
+
+Conn Id: Postgres
+Conn Type: Postgres
+Host: postgres
+Database: ${POSTGRES_DB}
+Login: ${POSTGRES_USER}
+Password: ${POSTGRES_PASSWORD}
+Port: 5432
+
+
+3. ClickHouse (витрины/аналитика)
+
+Conn Id: ClickHouse
+Conn Type: HTTP
+Host: clickhouse
+Schema: ${CLICKHOUSE_DB}
+Login: ${CLICKHOUSE_USER}
+Password: ${CLICKHOUSE_PASSWORD}
+Port: 9000
+
+
+## Проверка MinIO 
+
+В консоли или UI-интерфейсе проверьте, что в MINIO_BUCKET появляются JSON-файлы событий.
+
+## Airflow (запуск DAG)
+
+1. Открыть Airflow (http://localhost:8080) 
+2. Запустите вручную только DAG load_raw_from_minio.
+3. Остальные DAG’и стартуют каскадом по зависимостям/триггерам.
+
+## Проверка СУБД
+
+Проверьте данные:
+   - PostgreSQL: проверить данные в схемах raw, staging, dds.
+   - ClickHouse: проверить данные в витринах marts.
+
+##  Дашборд
+
+В Metabase (http://localhost:3000) нужно самостоятельно построить дашборд, используя загруженные данные. 
+
+- В корне проекта находится PDF-файл с примером дашборда (`dashboard_example.pdf`), который демонстрирует, какие визуализации и метрики должны быть включены.
+- Подключитесь к ClickHouse через Metabase.
+- Используйте данные из ClickHouse для создания запросов.
+- Создайте финальный дашборд.
+
