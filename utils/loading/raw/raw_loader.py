@@ -120,7 +120,7 @@ def parse_file(file_key: str, s3: S3Hook, bucket: str) -> Tuple[Optional[Dict[st
     except Exception as e:
         logging.error(f"Ошибка при разборе файла {file_key}: {e}")
         error_row = {
-            "file_name": file_key,
+            "filename": file_key,
             "event_id": data.get("event_id") if isinstance(data, dict) else None,
             "event_time": data.get("event_time") if isinstance(data, dict) else None,
             "error_message": str(e),

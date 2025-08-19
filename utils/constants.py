@@ -37,7 +37,7 @@ RAW_EVENT_COLUMNS = [
 ]
 
 RAW_EVENT_INVALID_COLUMNS = [
-    "file_name", "event_id", "event_time", "error_message", "raw_payload"
+    "filename", "event_id", "event_time", "error_message", "raw_payload"
 ]
 
 DIM_LOAD_ORDER = [
