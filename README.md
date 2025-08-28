@@ -73,68 +73,95 @@
 
 ---
 
+
 ## 🛠 Технологии
 
-<table>
+<div style="white-space: nowrap; margin-bottom: 16px;">
+
+<!-- Docker -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#2496ed; border-radius:8px; padding:4px;">
   <tr>
-    <!-- Docker -->
-    <td align="center" style="background-color:#2496ed; padding:8px 12px; border-radius:8px;">
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://www.docker.com/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" width="32"><br>
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" width="32" height="32"><br>
         <b>Docker</b><br>
         <span style="font-size:10px;">24.0.6</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- Python -->
-    <td align="center" style="background-color:#3776ab; padding:8px 12px; border-radius:8px;">
+<!-- Python -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#3776ab; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://www.python.org/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="32"><br>
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="32" height="32"><br>
         <b>Python</b><br>
         <span style="font-size:10px;">3.12</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- MinIO -->
-    <td align="center" style="background-color:#f3a847; padding:8px 12px; border-radius:8px;">
+<!-- MinIO -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#f3a847; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://min.io/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://min.io/images/minio-logo.svg" width="32"><br>
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c1f7_MinIO.svg" width="32" height="32"><br>
         <b>MinIO</b><br>
         <span style="font-size:10px;">2025-07-23</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- Airflow -->
-    <td align="center" style="background-color:#017cff; padding:8px 12px; border-radius:8px;">
+<!-- Airflow -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#017cff; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://airflow.apache.org/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apacheairflow/apacheairflow-original.svg" width="32"><br>
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apacheairflow/apacheairflow-original.svg" width="32" height="32"><br>
         <b>Airflow</b><br>
         <span style="font-size:10px;">2.8.3</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- PostgreSQL -->
-    <td align="center" style="background-color:#336791; padding:8px 12px; border-radius:8px;">
+<!-- PostgreSQL -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#336791; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://www.postgresql.org/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" width="32"><br>
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" width="32" height="32"><br>
         <b>PostgreSQL</b><br>
         <span style="font-size:10px;">13</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- ClickHouse -->
-    <td align="center" style="background-color:#f06423; padding:8px 12px; border-radius:8px;">
+<!-- ClickHouse -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#f06423; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://clickhouse.com/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/clickhouse/clickhouse-original.svg" width="32"><br>
+        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/clickhouse/clickhouse-original.svg" width="32" height="32"><br>
         <b>ClickHouse</b><br>
         <span style="font-size:10px;">25.6.6.29</span>
       </a>
     </td>
+  </tr>
+</table>
 
-    <!-- Metabase -->
-    <td align="center" style="background-color:#1d7cf2; padding:8px 12px; border-radius:8px;">
+<!-- Metabase -->
+<table align="left" style="display:inline-table; margin-right:6px; background-color:#1d7cf2; border-radius:8px; padding:4px;">
+  <tr>
+    <td align="center" style="width:100px; height:100px;">
       <a href="https://www.metabase.com/" target="_blank" style="text-decoration:none; color:white; font-family:sans-serif;">
-        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/metabase/metabase-plain.svg" width="32"><br>
+        <img src="https://www.vectorlogo.zone/logos/metabase/metabase-icon.svg" width="32" height="32"><br>
         <b>Metabase</b><br>
         <span style="font-size:10px;">0.55.10</span>
       </a>
@@ -142,16 +169,19 @@
   </tr>
 </table>
 
+</div>
 
+<br clear="both">
 
-- **Контейнеризация:** Docker / Docker Compose  
-- **Генерация данных:** Python (faker, json)  
-- **Хранилище исходных событий:** MinIO  
-- **Оркестрация:** Apache Airflow  
-- **Хранилище сырья:** PostgreSQL (схемы raw, staging, dds)  
+- **Контейнеризация:** [Docker](https://www.docker.com/) / Docker Compose  
+- **Генерация данных:** [Python](https://www.python.org/) (faker, json)  
+- **Хранилище исходных событий:** [MinIO](https://min.io/)  
+- **Оркестрация:** [Apache Airflow](https://airflow.apache.org/)  
+- **Хранилище сырья:** [PostgreSQL](https://www.postgresql.org/) (схемы raw, staging, dds)  
 - **Валидация данных:** Pydantic, ограничения в SQL-скриптах  
-- **Аналитические витрины:** ClickHouse  
-- **Визуализация:** Metabase  
+- **Аналитические витрины:** [ClickHouse](https://clickhouse.com/)  
+- **Визуализация:** [Metabase](https://www.metabase.com/)  
+
 
 ---
 
@@ -159,9 +189,11 @@
 
 Проект построен по классической многоуровневой архитектуре DWH:  
 
-`[Источник данных] → [RAW] → [STAGING] → [DDS] → [MARTS] → [Dashboard]`
+<p align="center">
+  <img src="./diagrams/etl.png" alt="Архитектура ETL-пайплайна" width="800"/>
+</p>
 
-> 📌 *[вставить диаграмму архитектуры/потока данных]*
+---
 
 ### Описание слоёв
 
@@ -174,7 +206,7 @@
 
 ## Логика пайплайна
 
-1. **Генерация событий (RAW слой)**  
+1. **Генерация событий и загрузка в MinIO**  
    - Скрипты в папке `generator` создают реалистичные JSON-события веб-аналитики (page_view, add_to_cart, purchase) с данными пользователей, сессий, товаров и маркетинговых кампаний.  
    - Каждую минуту формируются новые события, сохраняемые в MinIO, организованные по датам.  
    - Поддерживаются повторные взаимодействия пользователей и сессий для имитации поведения реальных клиентов.  
