@@ -3,7 +3,7 @@
 **Автор:** Кононович Илона Сергеевна  
 **Год:** 2025
 
----
+
 ## 📝 Аннотация  
 Полноценный ETL-пайплайн, моделирующий работу промышленного корпоративного хранилища данных (DWH).  
 
@@ -19,12 +19,9 @@
 </p>
 
 
-
----
-
 ## 📚 Оглавление
 
-- [Аннотация](#аннотация)
+- [Аннотация](#Аннотация)
 - [Введение](#введение)
   - [Цели проекта (исходный раздел)](#цели-проекта-исходный-раздел)
 - [Технологии](#технологии)
@@ -51,7 +48,7 @@
 - [Заключение](#заключение)
 - [Приложения](#приложения)
 
----
+
 ## 🚀 Введение
 
 Современные веб-приложения генерируют огромный поток событий: клики, просмотры страниц, заказы, платежи, маркетинговые активности. Эти данные ценны, но сами по себе они «сырые» и беспорядочные. Чтобы бизнес мог принимать решения на их основе, данные нужно:  
@@ -72,10 +69,41 @@
 - Настроить автоматическую работу пайплайнов и мониторинг: от алертов об ошибках до логирования прогресса загрузок.  
 
 
----
 
-## Технологии
-> 📌 *[вставить логотипы ключевых технологий в один ряд]*
+## 🛠 Технологии
+
+<p align="center">
+
+<a href="https://www.docker.com/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" width="60"/><br>Docker 24.0.6
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://www.python.org/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="60"/><br>Python 3.12
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://min.io/" target="_blank">
+  <img src="https://min.io/images/minio-logo.svg" alt="MinIO" width="60"/><br>MinIO 2025-07-23
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://airflow.apache.org/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apacheairflow/apacheairflow-original.svg" alt="Airflow" width="60"/><br>Airflow 2.8.3
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://www.postgresql.org/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" alt="PostgreSQL" width="60"/><br>PostgreSQL 13
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://clickhouse.com/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/clickhouse/clickhouse-original.svg" alt="ClickHouse" width="60"/><br>ClickHouse 25.6.6.29
+</a>&nbsp;&nbsp;&nbsp;
+
+<a href="https://www.metabase.com/" target="_blank">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/metabase/metabase-plain.svg" alt="Metabase" width="60"/><br>Metabase 0.55.10
+</a>
+
+</p>
+
 
 - **Контейнеризация:** Docker / Docker Compose  
 - **Генерация данных:** Python (faker, json)  
