@@ -15,7 +15,7 @@
 
 
 <p align="center">
-  <img src="./diagrams/pipeline.png" alt="Архитектура ETL-пайплайна" width="200"/>
+  <img src="./diagrams/pipeline.png" alt="Архитектура ETL-пайплайна" width="400"/>
 </p>
 
 
