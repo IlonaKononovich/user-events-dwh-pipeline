@@ -3,6 +3,7 @@
 **Автор:** Кононович Илона Сергеевна  
 **Год:** 2025
 
+---
 
 ## 📝 Аннотация  
 Полноценный ETL-пайплайн, моделирующий работу промышленного корпоративного хранилища данных (DWH).  
@@ -18,6 +19,7 @@
   <img src="./diagrams/pipeline.png" alt="Архитектура ETL-пайплайна" width="400"/>
 </p>
 
+---
 
 ## 📚 Оглавление
 
@@ -48,6 +50,7 @@
 - [Заключение](#заключение)
 - [Приложения](#приложения)
 
+---
 
 ## 🚀 Введение
 
@@ -68,38 +71,87 @@
 - Нормализовать данные в хранилище и построить аналитические витрины для BI-систем.  
 - Настроить автоматическую работу пайплайнов и мониторинг: от алертов об ошибках до логирования прогресса загрузок.  
 
-
+---
 
 ## 🛠 Технологии
 
-<p align="center">
+<p align="center" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px;">
 
-<a href="https://www.docker.com/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" width="60"/><br>Docker 24.0.6
-</a>&nbsp;&nbsp;&nbsp;
+<!-- Docker -->
+<a href="https://www.docker.com/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#2496ed; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" alt="Docker" width="24" style="margin-right:8px;">
+    <div>
+      <div>Docker</div>
+      <div style="font-size:10px; opacity:0.8;">24.0.6</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://www.python.org/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="60"/><br>Python 3.12
-</a>&nbsp;&nbsp;&nbsp;
+<!-- Python -->
+<a href="https://www.python.org/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#3776ab; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" alt="Python" width="24" style="margin-right:8px;">
+    <div>
+      <div>Python</div>
+      <div style="font-size:10px; opacity:0.8;">3.12</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://min.io/" target="_blank">
-  <img src="https://min.io/images/minio-logo.svg" alt="MinIO" width="60"/><br>MinIO 2025-07-23
-</a>&nbsp;&nbsp;&nbsp;
+<!-- MinIO -->
+<a href="https://min.io/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#f3a847; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://min.io/images/minio-logo.svg" alt="MinIO" width="24" style="margin-right:8px;">
+    <div>
+      <div>MinIO</div>
+      <div style="font-size:10px; opacity:0.8;">2025-07-23</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://airflow.apache.org/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apacheairflow/apacheairflow-original.svg" alt="Airflow" width="60"/><br>Airflow 2.8.3
-</a>&nbsp;&nbsp;&nbsp;
+<!-- Airflow -->
+<a href="https://airflow.apache.org/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#017cff; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/apacheairflow/apacheairflow-original.svg" alt="Airflow" width="24" style="margin-right:8px;">
+    <div>
+      <div>Airflow</div>
+      <div style="font-size:10px; opacity:0.8;">2.8.3</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://www.postgresql.org/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" alt="PostgreSQL" width="60"/><br>PostgreSQL 13
-</a>&nbsp;&nbsp;&nbsp;
+<!-- PostgreSQL -->
+<a href="https://www.postgresql.org/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#336791; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" alt="PostgreSQL" width="24" style="margin-right:8px;">
+    <div>
+      <div>PostgreSQL</div>
+      <div style="font-size:10px; opacity:0.8;">13</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://clickhouse.com/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/clickhouse/clickhouse-original.svg" alt="ClickHouse" width="60"/><br>ClickHouse 25.6.6.29
-</a>&nbsp;&nbsp;&nbsp;
+<!-- ClickHouse -->
+<a href="https://clickhouse.com/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#f06423; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/clickhouse/clickhouse-original.svg" alt="ClickHouse" width="24" style="margin-right:8px;">
+    <div>
+      <div>ClickHouse</div>
+      <div style="font-size:10px; opacity:0.8;">25.6.6.29</div>
+    </div>
+  </div>
+</a>
 
-<a href="https://www.metabase.com/" target="_blank">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/metabase/metabase-plain.svg" alt="Metabase" width="60"/><br>Metabase 0.55.10
+<!-- Metabase -->
+<a href="https://www.metabase.com/" target="_blank" style="text-decoration:none;">
+  <div style="display:flex; align-items:center; background:#1d7cf2; color:white; padding:6px 12px; border-radius:8px; font-family:sans-serif;">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/metabase/metabase-plain.svg" alt="Metabase" width="24" style="margin-right:8px;">
+    <div>
+      <div>Metabase</div>
+      <div style="font-size:10px; opacity:0.8;">0.55.10</div>
+    </div>
+  </div>
 </a>
 
 </p>
