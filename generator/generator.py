@@ -129,7 +129,6 @@ def ensure_bucket_exists() -> None:
         error_message = f"[x] Ошибка при создании бакета: {e}"
         logging.error(error_message)
         notify_telegram(error_message)
-        raise
 
 def get_or_create_user() -> tuple[str, str]:
     """
