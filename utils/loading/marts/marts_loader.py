@@ -4,7 +4,8 @@
 Содержит функции для:
 - получения клиента ClickHouse через Airflow Connection,
 - создания таблиц marts в ClickHouse,
-- загрузки данных из DDS (Postgres) и вставки в ClickHouse с безопасной конвертацией типов,
+- загрузки ежедневной сводки, статистики товаров и поведения пользователей из DDS,
+- безопасной конвертации типов данных для ClickHouse,
 - логирования ключевых этапов и ошибок в лог и Telegram.
 
 Использует Airflow хуки для подключения к ClickHouse и Postgres.
@@ -89,79 +90,98 @@ def add_version(data: List[Tuple[Any, ...]], version: int) -> List[Tuple[Any, ..
     return [tuple(list(row) + [version]) for row in data]
 
 
-def load_clickhouse_marts(
+def create_ch_tables(clickhouse_conn_id: str = "ClickHouse") -> None:
+    """
+    Создаёт витрины в ClickHouse, если ещё не созданы.
+
+    :param clickhouse_conn_id: Идентификатор соединения с ClickHouse в Airflow (default: "ClickHouse")
+    :return: None
+    """
+    client = get_clickhouse_client(clickhouse_conn_id)
+    for query in CREATE_MARTS_TABLES_SQL:
+        client.execute(query)
+    logging.info("Таблицы marts успешно созданы/проверены")
+
+
+def load_mart_table(
+    sql_source: str,
+    sql_insert: str,
+    description: str,
     clickhouse_conn_id: str = "ClickHouse",
     postgres_conn_id: str = "Postgres"
 ) -> None:
     """
-    Загружает агрегированные витрины marts из DDS (Postgres) в ClickHouse с логированием.
+    Универсальная функция загрузки витрины из DDS (Postgres) в ClickHouse.
 
-    Выполняет:
-    - Создание таблиц marts (если они ещё не созданы)
-    - Загрузку ежедневной сводки, статистики товаров и поведения пользователей
-    - Конвертацию числовых типов и добавление версии для ReplacingMergeTree
-    - Логирование количества обработанных строк по каждой витрине
-    - Отправку уведомлений в Telegram о старте, прогрессе и завершении
-    - Подсчёт времени выполнения DAG
-
-    :param clickhouse_conn_id: Airflow connection ID для ClickHouse (по умолчанию "ClickHouse")
-    :param postgres_conn_id: Airflow connection ID для Postgres (по умолчанию "Postgres")
+    :param sql_source: SQL-запрос для извлечения данных из DDS
+    :param sql_insert: SQL-запрос для вставки данных в ClickHouse
+    :param description: Текстовое описание витрины (для логов и Telegram)
+    :param clickhouse_conn_id: Идентификатор соединения с ClickHouse в Airflow (default: "ClickHouse")
+    :param postgres_conn_id: Идентификатор соединения с Postgres в Airflow (default: "Postgres")
     :return: None
-    :raises Exception: Пробрасывает ошибки подключения или вставки данных
     """
-    start_time = time.time()
-    try:
-        notify_telegram("DAG load_clickhouse_from_dds запущен")
-        logging.info("Начинаем загрузку marts в ClickHouse")
+    client = get_clickhouse_client(clickhouse_conn_id)
+    pg_hook = PostgresHook(postgres_conn_id)
+    version = int(datetime.now().timestamp() * 1000)
 
-        client = get_clickhouse_client(clickhouse_conn_id)
+    data = pg_hook.get_records(sql_source)
+    data = [convert_numeric_row(row) for row in data]
+    data = add_version(data, version)
 
-        # Создание таблиц
-        logging.info("Создание таблиц marts (если не существуют)...")
-        for query in CREATE_MARTS_TABLES_SQL:
-            client.execute(query)
-        logging.info("Таблицы marts успешно созданы/проверены")
+    client.execute(sql_insert, data)
+    logging.info(f"{description} загружена: {len(data)} строк")
+    notify_telegram(f"{description} загружена: {len(data)} строк")
 
-        pg_hook = PostgresHook(postgres_conn_id=postgres_conn_id)
 
-        # Генерация версии для текущего запуска DAG
-        version = int(datetime.now().timestamp() * 1000)
+def load_daily_summary_to_ch(clickhouse_conn_id: str = "ClickHouse", postgres_conn_id: str = "Postgres") -> None:
+    """
+    Загружает агрегированную ежедневную сводку из DDS (Postgres) в ClickHouse.
 
-        # Загрузка ежедневной сводки
-        logging.info("Загрузка ежедневной сводки из DDS...")
-        data_daily = pg_hook.get_records(INSERT_DAILY_SUMMARY_SQL["source"])
-        data_daily = [convert_numeric_row(row) for row in data_daily]
-        data_daily = add_version(data_daily, version)
-        client.execute(INSERT_DAILY_SUMMARY_SQL["insert"], data_daily)
-        logging.info(f"Ежедневная сводка загружена: {len(data_daily)} строк")
-        notify_telegram(f"Ежедневная сводка загружена: {len(data_daily)} строк")
+    :param clickhouse_conn_id: Идентификатор соединения с ClickHouse в Airflow (default: "ClickHouse")
+    :param postgres_conn_id: Идентификатор соединения с Postgres в Airflow (default: "Postgres")
+    :return: None
+    """
+    load_mart_table(
+        sql_source=INSERT_DAILY_SUMMARY_SQL["source"],
+        sql_insert=INSERT_DAILY_SUMMARY_SQL["insert"],
+        description="Ежедневная сводка",
+        clickhouse_conn_id=clickhouse_conn_id,
+        postgres_conn_id=postgres_conn_id,
+    )
 
-        # Загрузка статистики товаров
-        logging.info("Загрузка статистики товаров из DDS...")
-        data_products = pg_hook.get_records(INSERT_PRODUCT_STATS_SQL["source"])
-        data_products = [convert_numeric_row(row) for row in data_products]
-        data_products = add_version(data_products, version)
-        client.execute(INSERT_PRODUCT_STATS_SQL["insert"], data_products)
-        logging.info(f"Статистика товаров загружена: {len(data_products)} строк")
-        notify_telegram(f"Статистика товаров загружена: {len(data_products)} строк")
 
-        # Загрузка поведения пользователей
-        logging.info("Загрузка поведения пользователей из DDS...")
-        data_users = pg_hook.get_records(INSERT_USER_BEHAVIOR_SQL["source"])
-        data_users = [convert_numeric_row(row) for row in data_users]
-        data_users = add_version(data_users, version)
-        client.execute(INSERT_USER_BEHAVIOR_SQL["insert"], data_users)
-        logging.info(f"Данные поведения пользователей загружены: {len(data_users)} строк")
-        notify_telegram(f"Данные поведения пользователей загружены: {len(data_users)} строк")
+def load_product_stats_to_ch(clickhouse_conn_id: str = "ClickHouse", postgres_conn_id: str = "Postgres") -> None:
+    """
+    Загружает статистику товаров из DDS (Postgres) в ClickHouse.
 
-        elapsed = round(time.time() - start_time, 2)
-        logging.info(f"[v] DAG load_clickhouse_from_dds завершён за {elapsed} секунд")
-        notify_telegram(f"[v] DAG load_clickhouse_from_dds завершён. Время выполнения: {elapsed} сек")
+    :param clickhouse_conn_id: Идентификатор соединения с ClickHouse в Airflow (default: "ClickHouse")
+    :param postgres_conn_id: Идентификатор соединения с Postgres в Airflow (default: "Postgres")
+    :return: None
+    """
+    load_mart_table(
+        sql_source=INSERT_PRODUCT_STATS_SQL["source"],
+        sql_insert=INSERT_PRODUCT_STATS_SQL["insert"],
+        description="Статистика товаров",
+        clickhouse_conn_id=clickhouse_conn_id,
+        postgres_conn_id=postgres_conn_id,
+    )
 
-    except Exception as e:
-        logging.error(f"[x] Ошибка в DAG load_clickhouse_from_dds: {e}", exc_info=True)
-        notify_telegram(f"[x] Ошибка в DAG load_clickhouse_from_dds: {e}")
-        raise
+
+def load_user_behavior_to_ch(clickhouse_conn_id: str = "ClickHouse", postgres_conn_id: str = "Postgres") -> None:
+    """
+    Загружает данные о поведении пользователей из DDS (Postgres) в ClickHouse.
+
+    :param clickhouse_conn_id: Идентификатор соединения с ClickHouse в Airflow (default: "ClickHouse")
+    :param postgres_conn_id: Идентификатор соединения с Postgres в Airflow (default: "Postgres")
+    :return: None
+    """
+    load_mart_table(
+        sql_source=INSERT_USER_BEHAVIOR_SQL["source"],
+        sql_insert=INSERT_USER_BEHAVIOR_SQL["insert"],
+        description="Поведение пользователей",
+        clickhouse_conn_id=clickhouse_conn_id,
+        postgres_conn_id=postgres_conn_id,
+    )
 
 
 if __name__ == "__main__":

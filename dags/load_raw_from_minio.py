@@ -39,6 +39,7 @@ def load_from_minio_to_postgres(batch_size: int = 10) -> None:
     Загружает события из MinIO в raw.events батчами с защитой от сбоев.
 
     :param batch_size: Размер батча для вставки в БД.
+    :return: None
     """
     s3 = S3Hook(aws_conn_id='MinIO')
     pg = PostgresHook(postgres_conn_id='Postgres')
@@ -111,8 +112,9 @@ with DAG(
     default_args=default_args,
     description='Загрузка событий из MinIO в raw слой PostgreSQL с валидацией и логированием',
     start_date=datetime(2025, 7, 1),
-    schedule_interval=None,
+    schedule_interval="* * * * *",
     catchup=False,
+    max_active_runs=1,
     tags=['raw'],
 ) as dag:
     """

@@ -1,4 +1,4 @@
-pandas
-faker
-minio
-requests
+pandas==2.3.2
+Faker==37.6.0
+minio==7.1.0
+requests==2.32.5

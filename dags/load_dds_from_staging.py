@@ -139,6 +139,7 @@ with DAG(
     start_date=datetime(2025, 7, 1),
     schedule_interval=None,
     catchup=False,
+    max_active_runs=1,
     tags=['dds'],
 ) as dag:
     """

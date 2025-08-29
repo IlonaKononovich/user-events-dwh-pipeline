@@ -481,8 +481,9 @@ Admin → Connections создайте/проверьте три соедине�
 #### 7. Airflow (запуск DAG)
 
 - Открыть [Airflow](http://localhost:8080)
-- Запустите вручную только DAG load_raw_from_minio.
-- Остальные DAG’и стартуют каскадом по зависимостям/триггерам.
+- Включите все DAG'и, если они не включены.
+- DAG load_raw_from_minio запускается каждую минуту.
+- Остальные DAG’и стартуют каскадом по триггерам.
 
 <p align="">
   <img src="./screenshots/Airflow.png" alt="Airflow" width="800"/>
