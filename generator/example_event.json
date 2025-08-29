@@ -1,0 +1,104 @@
+{
+  "event_id": "49bc8fe6-ed40-4248-9c53-1fedfa0c082c",
+  "event_type": "purchase",
+  "event_time": "2025-05-19T23:41:56.964433+00:00",
+  "event_date": "2025-05-19",
+  "user": {
+    "user_id": "a5e1d660-68cb-43e4-b128-26339c53f57d",
+    "email": "leonti69@example.com",
+    "referral_code": "8ff2cee0-5b30-4051-a2bc-7e5e6907a676",
+    "profile": {
+      "name": "Юдин Гаврила Витальевич",
+      "birth_date": "1993-02-10",
+      "created_at": "2025-08-14T19:14:52.335016+00:00"
+    }
+  },
+  "session": {
+    "session_id": "861a1ebe-c16b-40f8-97e0-7fa0d183f6bd",
+    "start_time": "2025-05-19T23:41:56.964433+00:00",
+    "end_time": "2025-05-20T00:05:56.964433+00:00",
+    "pages_viewed": 1,
+    "device": {
+      "type": "mobile",
+      "os": "Windows",
+      "location": {
+        "country": "Беларусь",
+        "city": "Полоцк"
+      }
+    }
+  },
+  "products": [
+    {
+      "product_id": "e5ee19d8-152d-43ae-887f-475b3d26f0d3",
+      "name": "Подгузники",
+      "category": "Детские товары",
+      "supplier": "ПодгузникСервис",
+      "price": 68.97,
+      "quantity": 1
+    }
+  ],
+  "order": {
+    "order_id": "a082db4f-b4a2-411c-bfb8-709aa70b594e",
+    "payment_id": "0451ac3e-84c0-49c8-af4e-8d40766d7811",
+    "order_items": 1,
+    "total_amount": 68.97,
+    "status": "created"
+  },
+  "marketing": {
+    "campaign": null,
+    "promocode": null,
+    "user_campaign_id": null
+  },
+  "raw_payload": {
+    "event_id": "49bc8fe6-ed40-4248-9c53-1fedfa0c082c",
+    "event_type": "purchase",
+    "event_time": "2025-05-19T23:41:56.964433+00:00",
+    "event_date": "2025-05-19",
+    "user": {
+      "user_id": "a5e1d660-68cb-43e4-b128-26339c53f57d",
+      "email": "leonti69@example.com",
+      "referral_code": "8ff2cee0-5b30-4051-a2bc-7e5e6907a676",
+      "profile": {
+        "name": "Юдин Гаврила Витальевич",
+        "birth_date": "1993-02-10",
+        "created_at": "2025-08-14T19:14:52.335016+00:00"
+      }
+    },
+    "session": {
+      "session_id": "861a1ebe-c16b-40f8-97e0-7fa0d183f6bd",
+      "start_time": "2025-05-19T23:41:56.964433+00:00",
+      "end_time": "2025-05-20T00:05:56.964433+00:00",
+      "pages_viewed": 1,
+      "device": {
+        "type": "mobile",
+        "os": "Windows",
+        "location": {
+          "country": "Беларусь",
+          "city": "Полоцк"
+        }
+      }
+    },
+    "products": [
+      {
+        "product_id": "e5ee19d8-152d-43ae-887f-475b3d26f0d3",
+        "name": "Подгузники",
+        "category": "Детские товары",
+        "supplier": "ПодгузникСервис",
+        "price": 68.97,
+        "quantity": 1
+      }
+    ],
+    "order": {
+      "order_id": "a082db4f-b4a2-411c-bfb8-709aa70b594e",
+      "payment_id": "0451ac3e-84c0-49c8-af4e-8d40766d7811",
+      "order_items": 1,
+      "total_amount": 68.97,
+      "status": "created"
+    },
+    "marketing": {
+      "campaign": null,
+      "promocode": null,
+      "user_campaign_id": null
+    }
+  }
+}
