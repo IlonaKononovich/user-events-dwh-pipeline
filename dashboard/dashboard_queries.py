@@ -25,6 +25,7 @@ SELECT
   SUM(`marts`.`daily_summary`.`revenue`) AS `sum`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 """
 
 # Заказы
@@ -33,6 +34,7 @@ SELECT
   SUM(`marts`.`daily_summary`.`orders_count`) AS `sum`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 """
 
 # Конверсия
@@ -41,6 +43,7 @@ SELECT
   AVG(`marts`.`daily_summary`.`conversion_rate`) AS `avg`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 """
 
 # Средний чек
@@ -49,6 +52,7 @@ SELECT
   AVG(`marts`.`daily_summary`.`avg_check`) AS `avg`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 """
 
 # -----------------------------
@@ -58,66 +62,72 @@ FROM
 # Выручка по дням
 REVENUE_DAILY = """
 SELECT
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) AS `event_date`,
+SELECT
+  toStartOfDay(`marts`.`daily_summary`.`event_date`) AS `event_date`,
   SUM(`marts`.`daily_summary`.`revenue`) AS `sum`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 GROUP BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`)
+  toStartOfDay(`marts`.`daily_summary`.`event_date`)
 ORDER BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) ASC
+  `event_date` ASC
 """
 
 # Количество заказов по дням
 ORDERS_DAILY = """
 SELECT
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) AS `event_date`,
+  toStartOfDay(`marts`.`daily_summary`.`event_date`) AS `event_date`,
   SUM(`marts`.`daily_summary`.`orders_count`) AS `sum`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 GROUP BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`)
+  toStartOfDay(`marts`.`daily_summary`.`event_date`)
 ORDER BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) ASC
+  `event_date` ASC
 """
 
 # Конверсия по дням
 CONVERSION_DAILY = """
 SELECT
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) AS `event_date`,
+  toStartOfDay(`marts`.`daily_summary`.`event_date`) AS `event_date`,
   AVG(`marts`.`daily_summary`.`conversion_rate`) AS `avg`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 GROUP BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`)
+  toStartOfDay(`marts`.`daily_summary`.`event_date`)
 ORDER BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) ASC
+  `event_date` ASC
 """
 
 # Уникальные пользователи по дням
 UNIQUE_USERS_DAILY = """
 SELECT
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) AS `event_date`,
+  toStartOfDay(`marts`.`daily_summary`.`event_date`) AS `event_date`,
   SUM(`marts`.`daily_summary`.`unique_users`) AS `sum`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 GROUP BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`)
+  toStartOfDay(`marts`.`daily_summary`.`event_date`)
 ORDER BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) ASC
+  `event_date` ASC
 """
 
 # Средний чек по дням
 AVG_CHECK_DAILY = """
 SELECT
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) AS `event_date`,
+  toStartOfDay(`marts`.`daily_summary`.`event_date`) AS `event_date`,
   AVG(`marts`.`daily_summary`.`avg_check`) AS `avg`
 FROM
   `marts`.`daily_summary` FINAL
+[[ WHERE {{event_date}} ]]
 GROUP BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`)
+  toStartOfDay(`marts`.`daily_summary`.`event_date`)
 ORDER BY
-  `toStartOfDay`(`marts`.`daily_summary`.`event_date`) ASC
+  `event_date` ASC
 """
 
 # -----------------------------
@@ -131,6 +141,7 @@ SELECT
   SUM(`marts`.`product_stats`.`total_revenue`) AS `sum`
 FROM
   `marts`.`product_stats` FINAL
+[[ WHERE `marts`.`product_stats`.`category_name` = {{category_filter}} ]]
 GROUP BY
   `marts`.`product_stats`.`category_name`
 ORDER BY
@@ -144,6 +155,8 @@ SELECT
   SUM(`marts`.`product_stats`.`total_sold`) AS `sum`
 FROM
   `marts`.`product_stats` FINAL
+WHERE 1=1
+[[ AND `marts`.`product_stats`.`category_name` = {{category_filter}} ]]
 GROUP BY
   `marts`.`product_stats`.`category_name`
 ORDER BY
@@ -157,6 +170,8 @@ SELECT
   AVG(`marts`.`product_stats`.`avg_price`) AS `avg`
 FROM
   `marts`.`product_stats` FINAL
+WHERE 1=1
+[[ AND `marts`.`product_stats`.`category_name` = {{category_filter}} ]]
 GROUP BY
   `marts`.`product_stats`.`category_name`
 ORDER BY
@@ -170,6 +185,9 @@ SELECT
   SUM(`marts`.`product_stats`.`orders_count`) AS `sum`
 FROM
   `marts`.`product_stats` FINAL
+WHERE 1=1
+[[ AND `marts`.`product_stats`.`category_name` = {{category_filter}} ]]
+[[ AND `marts`.`product_stats`.`product_name` = {{product_filter}} ]]
 GROUP BY
   `marts`.`product_stats`.`product_name`
 ORDER BY
@@ -183,6 +201,9 @@ SELECT
   SUM(`marts`.`product_stats`.`total_revenue`) AS `sum`
 FROM
   `marts`.`product_stats` FINAL
+WHERE 1=1
+[[ AND `marts`.`product_stats`.`category_name` = {{category_filter}} ]]
+[[ AND `marts`.`product_stats`.`product_name` = {{product_filter}} ]]
 GROUP BY
   `marts`.`product_stats`.`product_name`
 ORDER BY
@@ -190,6 +211,7 @@ ORDER BY
   `marts`.`product_stats`.`product_name` ASC
 LIMIT
   10
+
 """
 
 # -----------------------------
