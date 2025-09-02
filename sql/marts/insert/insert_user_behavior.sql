@@ -1,0 +1,1 @@
+INSERT INTO marts.user_behavior VALUES

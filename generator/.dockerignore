@@ -1,0 +1,34 @@
+# Python кэш и временные файлы
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.tmp
+*.db
+*.sqlite3
+
+# Конфигурации IDE
+.vscode/
+.idea/
+*.swp
+
+# Переменные окружения и секреты
+.env
+*.env
+
+# Файлы операционных систем
+.DS_Store
+Thumbs.db
+
+# Jupyter / блокноты
+*.ipynb
+.ipynb_checkpoints/
+
+# Папки с логами или временными данными
+logs/
+data/
+output/
+
+# Примеры и тесты
+examples/
+tests/

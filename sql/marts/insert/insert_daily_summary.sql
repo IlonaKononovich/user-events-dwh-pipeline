@@ -1,0 +1,1 @@
+INSERT INTO marts.daily_summary VALUES

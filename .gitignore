@@ -1,34 +1,88 @@
-# Python кэш и временные файлы
+# -------------------------
+# Python
+# -------------------------
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.pyd
+*.pdb
+*.egg-info/
 *.log
 *.tmp
 *.db
 *.sqlite3
+*.mypy_cache/
+*.pytest_cache/
 
-# Конфигурации IDE
-.vscode/
-.idea/
-*.swp
+# -------------------------
+# Virtual environments
+# -------------------------
+.venv/
+env/
+venv/
+ENV/
 
-# Переменные окружения и секреты
-.env
-*.env
-
-# Файлы операционных систем
-.DS_Store
-Thumbs.db
-
+# -------------------------
 # Jupyter / блокноты
+# -------------------------
 *.ipynb
 .ipynb_checkpoints/
 
-# Папки с логами или временными данными
+# -------------------------
+# IDE / редакторы
+# -------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.orig
+
+# -------------------------
+# Секреты и переменные окружения
+# -------------------------
+.env
+*.env
+.env.*
+secrets/
+credentials.json
+
+# -------------------------
+# macOS / Windows
+# -------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# -------------------------
+# Airflow
+# -------------------------
 logs/
+airflow/logs/
+airflow/tmp/
+airflow/dags/__pycache__/
+airflow/plugins/__pycache__/
+
+# -------------------------
+# Docker / Compose
+# -------------------------
+*.pid
+*.pid.lock
+docker-compose.override.yml
+.docker/
+.dockerignore
+
+# -------------------------
+# Проектные папки
+# -------------------------
 data/
 output/
-
-# Примеры и тесты
+tmp/
+cache/
 examples/
 tests/

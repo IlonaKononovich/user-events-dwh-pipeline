@@ -1,0 +1,1 @@
+INSERT INTO marts.product_stats VALUES
